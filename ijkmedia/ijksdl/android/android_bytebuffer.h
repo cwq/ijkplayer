@@ -1,8 +1,8 @@
 /*****************************************************************************
- * android_nativewindow.h
+ * android_bytebuffer.h
  *****************************************************************************
  *
- * copyright (c) 2013 Zhang Rui <bbcallen@gmail.com>
+ * copyright (c) 2014 Zhang Rui <bbcallen@gmail.com>
  *
  * This file is part of ijkPlayer.
  *
@@ -21,12 +21,18 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef IJKSDL_ANDROID__ANDROID_NATIVEWINDOW_H
-#define IJKSDL_ANDROID__ANDROID_NATIVEWINDOW_H
+#ifndef IJKSDL_ANDROID__ANDROID_BYTEBUFFER_H
+#define IJKSDL_ANDROID__ANDROID_BYTEBUFFER_H
 
-typedef struct ANativeWindow ANativeWindow;
-typedef struct SDL_VoutOverlay SDL_VoutOverlay;
+#include "ijksdl_inc_internal_android.h"
 
-int SDL_Android_NativeWindow_display_l(ANativeWindow* native_window, SDL_VoutOverlay *overlay);
+int     ASDK_ByteBuffer__loadClass(JNIEnv *env);
+jlong   ASDK_ByteBuffer__getDirectBufferCapacity(JNIEnv *env, jobject byte_buffer);
+void   *ASDK_ByteBuffer__getDirectBufferAddress(JNIEnv *env, jobject byte_buffer);
+void    ASDK_ByteBuffer__setDataLimited(JNIEnv *env, jobject byte_buffer, void* data, size_t size);
+
+jobject ASDK_ByteBuffer_allocateDirect(JNIEnv *env, jint capacity);
+jobject ASDK_ByteBuffer_allocateDirectAsGlobalRef(JNIEnv *env, jint capacity);
+jobject ASDK_ByteBuffer_limit(JNIEnv *env, jobject byte_buffer, jint newLimit);
 
 #endif

@@ -88,7 +88,7 @@ static int voud_display_overlay_l(SDL_Vout *vout, SDL_VoutOverlay *overlay)
         return -1;
     }
 
-    return sdl_native_window_display_l(native_window, overlay);
+    return SDL_Android_NativeWindow_display_l(native_window, overlay);
 }
 
 static int voud_display_overlay(SDL_Vout *vout, SDL_VoutOverlay *overlay)

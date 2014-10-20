@@ -1,8 +1,8 @@
 /*****************************************************************************
- * android_nativewindow.h
+ * ijksdl_codec_android_mediaformat_java.h
  *****************************************************************************
  *
- * copyright (c) 2013 Zhang Rui <bbcallen@gmail.com>
+ * copyright (c) 2014 Zhang Rui <bbcallen@gmail.com>
  *
  * This file is part of ijkPlayer.
  *
@@ -21,12 +21,16 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef IJKSDL_ANDROID__ANDROID_NATIVEWINDOW_H
-#define IJKSDL_ANDROID__ANDROID_NATIVEWINDOW_H
+#ifndef IJKSDL_ANDROID__ANDROID_CODEC_ANDROID_MEDIAFORMAT_JAVA_H
+#define IJKSDL_ANDROID__ANDROID_CODEC_ANDROID_MEDIAFORMAT_JAVA_H
 
-typedef struct ANativeWindow ANativeWindow;
-typedef struct SDL_VoutOverlay SDL_VoutOverlay;
+#include "ijksdl_codec_android_mediaformat.h"
 
-int SDL_Android_NativeWindow_display_l(ANativeWindow* native_window, SDL_VoutOverlay *overlay);
+int SDL_AMediaFormatJava__loadClass(JNIEnv *env);
+
+SDL_AMediaFormat *SDL_AMediaFormatJava_new(JNIEnv *env);
+SDL_AMediaFormat *SDL_AMediaFormatJava_createVideoFormat(JNIEnv *env, const char *mime, int width, int height);
+jobject           SDL_AMediaFormatJava_getObject(JNIEnv *env, const SDL_AMediaFormat *thiz);
 
 #endif
+

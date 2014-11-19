@@ -27,6 +27,8 @@
 #include "../ff_fferror.h"
 #include "../ff_ffplay.h"
 #include "../ijkplayer_internal.h"
+#include "../pipeline/ffpipeline_ffplay.h"
+#include "pipeline/ffpipeline_android.h"
 
 IjkMediaPlayer *ijkmp_android_create(int(*msg_loop)(void*))
 {
@@ -42,6 +44,10 @@ IjkMediaPlayer *ijkmp_android_create(int(*msg_loop)(void*))
     if (!mp->ffplayer->aout)
         goto fail;
 
+    mp->ffplayer->pipeline = ffpipeline_create_from_android(mp->ffplayer);
+    if (!mp->ffplayer->pipeline)
+        goto fail;
+
     return mp;
 
     fail:
@@ -53,7 +59,6 @@ void ijkmp_android_set_surface_l(JNIEnv *env, IjkMediaPlayer *mp, jobject androi
 {
     if (!mp || !mp->ffplayer || !mp->ffplayer->vout)
         return;
-
 
     SDL_VoutAndroid_SetAndroidSurface(env, mp->ffplayer->vout, android_surface);
 }

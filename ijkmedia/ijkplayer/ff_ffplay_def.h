@@ -389,6 +389,7 @@ static SDL_Surface *screen;
  ****************************************************************************/
 
 /* ffplayer */
+typedef struct IJKFF_Pipeline IJKFF_Pipeline;
 typedef struct FFPlayer {
     /* ffplay context */
     VideoState *is;
@@ -468,6 +469,7 @@ typedef struct FFPlayer {
     /* extra fields */
     SDL_Aout *aout;
     SDL_Vout *vout;
+    IJKFF_Pipeline *pipeline;
     int sar_num;
     int sar_den;
 
@@ -551,6 +553,7 @@ inline static void ffp_reset_internal(FFPlayer *ffp)
     /* extra fields */
     ffp->aout                   = NULL; /* reset outside */
     ffp->vout                   = NULL; /* reset outside */
+    ffp->pipeline               = NULL;
     ffp->sar_num                = 0;
     ffp->sar_den                = 0;
 

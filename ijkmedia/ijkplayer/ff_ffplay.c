@@ -26,6 +26,8 @@
 #include <math.h>
 #include "ff_cmdutils.h"
 #include "ff_fferror.h"
+#include "ff_ffpipeline.h"
+#include "ff_ffpipenode.h"
 
 // FIXME: 9 work around NDKr8e or gcc4.7 bug
 // isnan() may not recognize some double NAN, so we test both double and float
@@ -1487,7 +1489,7 @@ static int audio_thread(void *arg)
     return ret;
 }
 
-static int video_thread(void *arg)
+static int ffplay_video_thread(void *arg)
 {
     FFPlayer *ffp = arg;
     VideoState *is = ffp->is;
@@ -1583,6 +1585,14 @@ static int video_thread(void *arg)
 #endif
     av_frame_free(&frame);
     return 0;
+}
+
+static int video_thread(void *arg)
+{
+    FFPlayer *ffp = (FFPlayer *)arg;
+
+    IJKFF_Pipenode *node = ffpipeline_open_video_decoder(ffp->pipeline, ffp);
+    return ffpipenode_run_sync(node);
 }
 
 // FFP_MERGE: subtitle_thread
@@ -2673,7 +2683,7 @@ fail:
 // FFP_MERGE: options
 // FFP_MERGE: show_usage
 // FFP_MERGE: show_help_default
-static int video_refresh_thread(void *arg)
+static int ffplay_video_refresh_thread(void *arg)
 {
     FFPlayer *ffp = arg;
     VideoState *is = ffp->is;
@@ -2687,6 +2697,13 @@ static int video_refresh_thread(void *arg)
     }
 
     return 0;
+}
+static int video_refresh_thread(void *arg)
+{
+    FFPlayer *ffp = (FFPlayer *)arg;
+
+    IJKFF_Pipenode *node = ffpipeline_open_video_output(ffp->pipeline, ffp);
+    return ffpipenode_run_sync(node);
 }
 
 static int lockmgr(void **mtx, enum AVLockOp op)
@@ -2852,6 +2869,7 @@ void ffp_destroy(FFPlayer *ffp)
 
     SDL_VoutFreeP(&ffp->vout);
     SDL_AoutFreeP(&ffp->aout);
+    ffpipeline_free_p(&ffp->pipeline);
     ffp_reset_internal(ffp);
 
     msg_queue_destroy(&ffp->msg_queue);
@@ -3216,6 +3234,16 @@ void ffp_check_buffering_l(FFPlayer *ffp)
         ffp->current_high_water_mark_in_ms = hwm_in_ms;
         ffp_toggle_buffering(ffp, 0);
     }
+}
+
+int ffp_video_thread(FFPlayer *ffp)
+{
+    return ffplay_video_thread(ffp);
+}
+
+int ffp_video_refresh_thread(FFPlayer *ffp)
+{
+    return ffplay_video_refresh_thread(ffp);
 }
 
 static int ffp_format_control_message(struct AVFormatContext *s, int type,

@@ -71,7 +71,8 @@ public interface IMediaPlayer {
 
     public abstract boolean isPlaying();
     
-    //loopTimesÎª0±íÊ¾Ñ­»·²¥·Å£¬Îª1±íÊ¾Ö»²¥·Å1´Î
+    //loopTimesä¸º0è¡¨ç¤ºå¾ªç¯æ’­æ”¾ï¼Œä¸º1è¡¨ç¤ºåªæ’­æ”¾1æ¬¡
+    //loopTimesä¸ºä¸ºä¸ºä¸ºä¸º
     public abstract void setLooping(int loopTimes) throws IllegalStateException;
 
     public abstract void seekTo(long msec) throws IllegalStateException;

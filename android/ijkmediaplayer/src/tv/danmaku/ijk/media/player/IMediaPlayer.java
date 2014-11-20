@@ -70,6 +70,9 @@ public interface IMediaPlayer {
     public abstract int getVideoHeight();
 
     public abstract boolean isPlaying();
+    
+	//loopTimes为0表示循环播放，为1表示只播放1次
+    public abstract void setLooping(int loopTimes) throws IllegalStateException;
 
     public abstract void seekTo(long msec) throws IllegalStateException;
 

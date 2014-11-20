@@ -331,4 +331,10 @@ public class AndroidMediaPlayer extends SimpleMediaPlayer {
             notifyOnPrepared();
         }
     }
+
+	@Override
+	public void setLooping(int loopTimes) throws IllegalStateException {
+		// TODO Auto-generated method stub
+		
+	}
 }

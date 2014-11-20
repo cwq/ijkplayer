@@ -175,6 +175,7 @@ public final class IjkMediaPlayer extends SimpleMediaPlayer {
      */
     @Override
     public void setDisplay(SurfaceHolder sh) {
+
         mSurfaceHolder = sh;
         Surface surface;
         if (sh != null) {
@@ -184,6 +185,7 @@ public final class IjkMediaPlayer extends SimpleMediaPlayer {
         }
         _setVideoSurface(surface);
         updateSurfaceScreenOn();
+
     }
 
     /**
@@ -375,6 +377,9 @@ public final class IjkMediaPlayer extends SimpleMediaPlayer {
 
     @Override
     public native long getDuration();
+    
+    @Override
+    public native void setLooping(int loopTimes) throws IllegalStateException;
 
     /**
      * Releases resources associated with this IjkMediaPlayer object. It is
@@ -517,6 +522,7 @@ public final class IjkMediaPlayer extends SimpleMediaPlayer {
                 return;
 
             case MEDIA_BUFFERING_UPDATE:
+				/*
                 long bufferPosition = msg.arg1;
                 if (bufferPosition < 0) {
                     bufferPosition = 0;
@@ -530,9 +536,9 @@ public final class IjkMediaPlayer extends SimpleMediaPlayer {
                 if (percent >= 100) {
                     percent = 100;
                 }
-
+				*/
                 // DebugLog.efmt(TAG, "Buffer (%d%%) %d/%d",  percent, bufferPosition, duration);
-                player.notifyOnBufferingUpdate((int)percent);
+                player.notifyOnBufferingUpdate(msg.arg2);
                 return;
 
             case MEDIA_SEEK_COMPLETE:

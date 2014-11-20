@@ -25,7 +25,6 @@
 #include <pthread.h>
 #include <jni.h>
 #include "ijkutil/ijkutil.h"
-#include "ijkadk/ijkadk.h"
 #include "../ff_ffplay.h"
 #include "ijkplayer_android_def.h"
 #include "ijkplayer_android.h"
@@ -349,6 +348,31 @@ IjkMediaPlayer_setAvCodecOption(JNIEnv *env, jobject thiz, jobject name, jobject
 }
 
 static void
+IjkMediaPlayer_setSwScaleOption(JNIEnv *env, jobject thiz, jobject name, jobject value)
+{
+    MPTRACE("IjkMediaPlayer_setSwScaleOption");
+    IjkMediaPlayer *mp = jni_get_media_player(env, thiz);
+    const char *c_name = NULL;
+    const char *c_value = NULL;
+    JNI_CHECK_GOTO(mp, env, "java/lang/IllegalStateException", "mpjni: setSwScaleOption: null mp", LABEL_RETURN);
+
+    c_name = (*env)->GetStringUTFChars(env, name, NULL);
+    JNI_CHECK_GOTO(c_name, env, "java/lang/OutOfMemoryError", "mpjni: setSwScaleOption: name.string oom", LABEL_RETURN);
+
+    c_value = (*env)->GetStringUTFChars(env, value, NULL);
+    JNI_CHECK_GOTO(c_name, env, "java/lang/OutOfMemoryError", "mpjni: setSwScaleOption: name.string oom", LABEL_RETURN);
+
+    ijkmp_set_sws_option(mp, c_name, c_value);
+
+    LABEL_RETURN:
+    if (c_name)
+        (*env)->ReleaseStringUTFChars(env, name, c_name);
+    if (c_value)
+        (*env)->ReleaseStringUTFChars(env, value, c_value);
+    ijkmp_dec_ref_p(&mp);
+}
+
+static void
 IjkMediaPlayer_setOverlayFormat(JNIEnv *env, jobject thiz, jint chromaFourCC)
 {
     MPTRACE("IjkMediaPlayer_setOverlayFormat");
@@ -356,6 +380,19 @@ IjkMediaPlayer_setOverlayFormat(JNIEnv *env, jobject thiz, jint chromaFourCC)
     JNI_CHECK_GOTO(mp, env, "java/lang/IllegalStateException", "mpjni: setAvCodecOption: null mp", LABEL_RETURN);
 
     ijkmp_set_overlay_format(mp, chromaFourCC);
+
+    LABEL_RETURN:
+    ijkmp_dec_ref_p(&mp);
+}
+
+static void
+IjkMediaPlayer_setFrameDrop(JNIEnv *env, jobject thiz, jint frameDrop)
+{
+    MPTRACE("IjkMediaPlayer_setFrameDrop");
+    IjkMediaPlayer *mp = jni_get_media_player(env, thiz);
+    JNI_CHECK_GOTO(mp, env, "java/lang/IllegalStateException", "mpjni: setFrameDrop: null mp", LABEL_RETURN);
+
+    ijkmp_set_framedrop(mp, frameDrop);
 
     LABEL_RETURN:
     ijkmp_dec_ref_p(&mp);
@@ -502,7 +539,7 @@ static void message_loop_n(JNIEnv *env, IjkMediaPlayer *mp)
     jobject weak_thiz = (jobject) ijkmp_set_weak_thiz(mp, NULL);
     JNI_CHECK_GOTO(mp, env, NULL, "mpjni: message_loop_n: null weak_thiz", LABEL_RETURN);
 
-    while (true) {
+    while (1) {
         AVMessage msg;
 
         int retval = ijkmp_get_msg(mp, &msg, 1);
@@ -556,6 +593,8 @@ static void message_loop_n(JNIEnv *env, IjkMediaPlayer *mp)
         case FFP_MSG_SEEK_COMPLETE:
             MPTRACE("FFP_MSG_SEEK_COMPLETE:");
             post_event(env, weak_thiz, MEDIA_SEEK_COMPLETE, 0, 0);
+            break;
+        case FFP_MSG_PLAYBACK_STATE_CHANGED:
             break;
         default:
             ALOGE("unknown FFP_MSG_xxx(%d)", msg.what);
@@ -614,7 +653,9 @@ static JNINativeMethod g_methods[] = {
 
     { "_setAvFormatOption", "(Ljava/lang/String;Ljava/lang/String;)V", (void *) IjkMediaPlayer_setAvFormatOption },
     { "_setAvCodecOption",  "(Ljava/lang/String;Ljava/lang/String;)V", (void *) IjkMediaPlayer_setAvCodecOption },
+    { "_setSwScaleOption",  "(Ljava/lang/String;Ljava/lang/String;)V", (void *) IjkMediaPlayer_setSwScaleOption },
     { "_setOverlayFormat",  "(I)V",                                    (void *) IjkMediaPlayer_setOverlayFormat },
+    { "_setFrameDrop",      "(I)V",                                    (void *) IjkMediaPlayer_setFrameDrop },
 };
 
 JNIEXPORT jint JNI_OnLoad(JavaVM *vm, void *reserved)
@@ -658,7 +699,6 @@ JNIEXPORT jint JNI_OnLoad(JavaVM *vm, void *reserved)
     g_clazz.onControlResolveSegmentOfflineMrl = (*env)->GetStaticMethodID(env, g_clazz.clazz, "onControlResolveSegmentOfflineMrl", "(Ljava/lang/Object;I)Ljava/lang/String;");
     IJK_CHECK_RET(g_clazz.onControlResolveSegmentUrl, -1, "missing onControlResolveSegmentOfflineMrl");
 
-    ijkadk_global_init(env);
     ijkmp_global_init();
 
     return JNI_VERSION_1_4;

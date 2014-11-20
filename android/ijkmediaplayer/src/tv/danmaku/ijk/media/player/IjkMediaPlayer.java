@@ -94,10 +94,8 @@ public final class IjkMediaPlayer extends SimpleMediaPlayer {
     public static void loadLibrariesOnce(IjkLibLoader libLoader) {
         synchronized (IjkMediaPlayer.class) {
             if (!mIsLibLoaded) {
-                libLoader.loadLibrary("stlport_shared");
                 libLoader.loadLibrary("ijkffmpeg");
                 libLoader.loadLibrary("ijkutil");
-                libLoader.loadLibrary("ijkadk");
                 libLoader.loadLibrary("ijksdl");
                 libLoader.loadLibrary("ijkplayer");
                 mIsLibLoaded = true;
@@ -444,6 +442,10 @@ public final class IjkMediaPlayer extends SimpleMediaPlayer {
         _setAvCodecOption(name, value);
     }
 
+    public void setSwScaleOption(String name, String value) {
+        _setSwScaleOption(name, value);
+    }
+
     /**
      * @param chromaFourCC
      *      AvFourCC.SDL_FCC_RV16
@@ -454,9 +456,21 @@ public final class IjkMediaPlayer extends SimpleMediaPlayer {
         _setOverlayFormat(chromaFourCC);
     }
 
+    /**
+     * @param frameDrop
+     *      =0 do not drop any frame
+     *      <0 drop as many frames as possible
+     *      >0 display 1 frame per `frameDrop` continuous dropped frames, 
+     */
+    public void setFrameDrop(int frameDrop) {
+        _setFrameDrop(frameDrop);
+    }
+
     private native void _setAvFormatOption(String name, String value);
     private native void _setAvCodecOption(String name, String value);
+    private native void _setSwScaleOption(String name, String value);
     private native void _setOverlayFormat(int chromaFourCC);
+    private native void _setFrameDrop(int frameDrop);
 
     @Override
     public void setAudioStreamType(int streamtype) {

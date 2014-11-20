@@ -146,6 +146,7 @@ typedef struct SDL_Vout SDL_Vout;
 
 void            ijkmp_global_init();
 void            ijkmp_global_uninit();
+void            ijkmp_global_set_log_report(int use_report);
 void            ijkmp_io_stat_register(void (*cb)(const char *url, int type, int bytes));
 void            ijkmp_io_stat_complete_register(void (*cb)(const char *url,
                                                            int64_t read_bytes, int64_t total_size,
@@ -160,6 +161,7 @@ void            ijkmp_set_sws_option(IjkMediaPlayer *mp, const char *name, const
 void            ijkmp_set_overlay_format(IjkMediaPlayer *mp, int chroma_fourcc);
 void            ijkmp_set_picture_queue_capicity(IjkMediaPlayer *mp, int frame_count);
 void            ijkmp_set_max_fps(IjkMediaPlayer *mp, int max_fps);
+void            ijkmp_set_framedrop(IjkMediaPlayer *mp, int framedrop);
 
 // preferred to be called explicity, can be called multiple times
 // NOTE: ijkmp_shutdown may block thread

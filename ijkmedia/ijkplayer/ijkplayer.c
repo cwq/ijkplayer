@@ -71,6 +71,10 @@ void ijkmp_global_uninit()
     ffp_global_uninit();
 }
 
+void ijkmp_global_set_log_report(int use_report)
+{
+    ffp_global_set_log_report(use_report);
+}
 
 void ijkmp_io_stat_register(void (*cb)(const char *url, int type, int bytes))
 {
@@ -188,6 +192,17 @@ void ijkmp_set_max_fps(IjkMediaPlayer *mp, int max_fps)
     ffp_set_max_fps(mp->ffplayer, max_fps);
     pthread_mutex_unlock(&mp->mutex);
     MPTRACE("ijkmp_set_max_fp()=void\n");
+}
+
+void ijkmp_set_framedrop(IjkMediaPlayer *mp, int framedrop)
+{
+    assert(mp);
+
+    MPTRACE("ijkmp_set_framedrop(%d)\n", framedrop);
+    pthread_mutex_lock(&mp->mutex);
+    ffp_set_framedrop(mp->ffplayer, framedrop);
+    pthread_mutex_unlock(&mp->mutex);
+    MPTRACE("ijkmp_set_framedrop()=void\n");
 }
 
 void ijkmp_shutdown_l(IjkMediaPlayer *mp)

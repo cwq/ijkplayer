@@ -558,7 +558,9 @@ static void *KVO_AVPlayerItem_playbackBufferEmpty       = &KVO_AVPlayerItem_play
         if (self.bufferingProgress > 100) {
             dispatch_async(dispatch_get_main_queue(), ^{
                 if (self.bufferingProgress > 100) {
-                    _player.rate = 1.0f;
+                    if ([self isPlaying]) {
+                       _player.rate = 1.0f;
+                    }
                 }
             });
         }
@@ -580,6 +582,10 @@ static void *KVO_AVPlayerItem_playbackBufferEmpty       = &KVO_AVPlayerItem_play
     dispatch_async(dispatch_get_main_queue(), ^{
         [self didPlaybackStateChange];
         [self didLoadStateChange];
+        
+        if (blockError == nil) {
+            blockError = [[NSError alloc] init];
+        }
 
         [[NSNotificationCenter defaultCenter]
          postNotificationName:IJKMoviePlayerPlaybackDidFinishNotification

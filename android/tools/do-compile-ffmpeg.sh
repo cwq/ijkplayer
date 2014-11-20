@@ -1,4 +1,4 @@
-#! /usr/bin/env bash
+#!/bin/bash
 #
 # Copyright (C) 2013-2014 Zhang Rui <bbcallen@gmail.com>
 #
@@ -79,7 +79,7 @@ FF_DEP_LIBS=
 FF_ASM_OBJ_DIR=
 
 #----- armv7a begin -----
-if [ "$FF_ARCH" == "armv7a" ]; then
+if [ "$FF_ARCH" = "armv7a" ]; then
     FF_BUILD_NAME=ffmpeg-armv7a
     FF_BUILD_NAME_OPENSSL=openssl-armv7a
     FF_SOURCE=$FF_BUILD_ROOT/$FF_BUILD_NAME
@@ -96,7 +96,7 @@ if [ "$FF_ARCH" == "armv7a" ]; then
 
     FF_ASM_OBJ_DIR="libavutil/arm/*.o libavcodec/arm/*.o libswresample/arm/*.o"
 
-elif [ "$FF_ARCH" == "armv5" ]; then
+elif [ "$FF_ARCH" = "armv5" ]; then
     FF_BUILD_NAME=ffmpeg-armv5
     FF_BUILD_NAME_OPENSSL=openssl-armv5
     FF_SOURCE=$FF_BUILD_ROOT/$FF_BUILD_NAME
@@ -111,7 +111,7 @@ elif [ "$FF_ARCH" == "armv5" ]; then
 
     FF_ASM_OBJ_DIR="libavutil/arm/*.o libavcodec/arm/*.o libswresample/arm/*.o"
 
-elif [ "$FF_ARCH" == "x86" ]; then
+elif [ "$FF_ARCH" = "x86" ]; then
     FF_BUILD_NAME=ffmpeg-x86
     FF_BUILD_NAME_OPENSSL=openssl-x86
     FF_SOURCE=$FF_BUILD_ROOT/$FF_BUILD_NAME
@@ -149,7 +149,7 @@ UNAMES=$(uname -s)
 UNAMESM=$(uname -sm)
 echo "build on $UNAMESM"
 FF_MAKE_TOOLCHAIN_FLAGS="--install-dir=$FF_TOOLCHAIN_PATH"
-if [ "$UNAMES" == "Darwin" ]; then
+if [ "$UNAMES" = "Darwin" ]; then
     FF_MAKE_TOOLCHAIN_FLAGS="$FF_MAKE_TOOLCHAIN_FLAGS --system=darwin-x86_64"
     FF_MAKE_FLAG=-j`sysctl -n machdep.cpu.thread_count`
 fi
@@ -158,7 +158,7 @@ FF_MAKEFLAGS=
 if which nproc >/dev/null
 then
     FF_MAKEFLAGS=-j`nproc`
-elif [ "$UNAMES" == "Darwin" ] && which sysctl >/dev/null
+elif [ "$UNAMES" = "Darwin" ] && which sysctl >/dev/null
 then
     FF_MAKEFLAGS=-j`sysctl -n machdep.cpu.thread_count`
 fi
@@ -201,7 +201,7 @@ FF_CFLAGS="-O3 -Wall -pipe \
 #FF_CFLAGS="$FF_CFLAGS -finline-limit=300"
 
 export COMMON_FF_CFG_FLAGS=
-source $FF_BUILD_ROOT/../config/module.sh
+. $FF_BUILD_ROOT/../config/module.sh
 
 
 #--------------------
@@ -270,7 +270,7 @@ $CC -lm -lz -shared --sysroot=$FF_SYSROOT -Wl,--no-undefined -Wl,-z,noexecstack 
     $FF_DEP_LIBS \
     -o $FF_PREFIX/libijkffmpeg.so
 
-function mysedi() {
+mysedi() {
     f=$1
     exp=$2
     n=`basename $f`
@@ -302,3 +302,4 @@ for f in $FF_PREFIX/lib/pkgconfig/*.pc; do
     mysedi $f 's/-lswresample/-lijkffmpeg/g'
     mysedi $f 's/-lswscale/-lijkffmpeg/g'
 done
+

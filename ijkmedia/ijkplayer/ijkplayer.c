@@ -489,6 +489,16 @@ int ijkmp_seek_to(IjkMediaPlayer *mp, long msec)
     return retval;
 }
 
+int ijkmp_set_looping(IjkMediaPlayer *mp, int loop)
+{
+    assert(mp);
+    pthread_mutex_lock(&mp->mutex);
+    mp->ffplayer->loop = loop;
+    pthread_mutex_unlock(&mp->mutex);
+
+    return 0;
+}
+
 int ijkmp_get_state(IjkMediaPlayer *mp)
 {
     return mp->mp_state;

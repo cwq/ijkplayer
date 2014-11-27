@@ -604,6 +604,14 @@ static void video_image_display2(FFPlayer *ffp)
             g_fps_counter--;
         }
 #endif
+
+        // add by Javan 2014.11.27
+        if (!ffp->has_begin_render) {
+            // has not notified.
+            ffp_notify_msg1(ffp, FFP_MSG_RENDERING);
+            ffp->has_begin_render = 1;
+        }
+
     }
 }
 

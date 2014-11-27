@@ -599,6 +599,10 @@ static void message_loop_n(JNIEnv *env, IjkMediaPlayer *mp)
             break;
         case FFP_MSG_PLAYBACK_STATE_CHANGED:
             break;
+        case FFP_MSG_RENDERING:
+            MPTRACE("FFP_MSG_RENDERING:");
+            post_event(env, weak_thiz, MEDIA_INFO, FFP_MSG_RENDERING, 0);
+            break;
         default:
             ALOGE("unknown FFP_MSG_xxx(%d)", msg.what);
             break;

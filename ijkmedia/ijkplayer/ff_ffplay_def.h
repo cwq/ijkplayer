@@ -496,6 +496,9 @@ typedef struct FFPlayer {
 
     ijk_format_control_message format_control_message;
     void *format_control_opaque;
+
+    // add by Javan 2014.11.27  flag for notify render thread begin.
+    int has_begin_render;
 } FFPlayer;
 
 #define fftime_to_milliseconds(ts) (av_rescale(ts, 1000, AV_TIME_BASE));
@@ -579,6 +582,9 @@ inline static void ffp_reset_internal(FFPlayer *ffp)
 
     ffp->format_control_message = NULL;
     ffp->format_control_opaque  = NULL;
+
+    // add by Javan init render begin.
+    ffp->has_begin_render = 0;
 
     msg_queue_flush(&ffp->msg_queue);
 }

@@ -180,6 +180,8 @@ int             ijkmp_start(IjkMediaPlayer *mp);
 int             ijkmp_pause(IjkMediaPlayer *mp);
 int             ijkmp_stop(IjkMediaPlayer *mp);
 int             ijkmp_seek_to(IjkMediaPlayer *mp, long msec);
+// add this fuction for we want to control loop or not.
+int 			ijkmp_set_looping(IjkMediaPlayer *mp, int loop);
 int             ijkmp_get_state(IjkMediaPlayer *mp);
 bool            ijkmp_is_playing(IjkMediaPlayer *mp);
 long            ijkmp_get_current_position(IjkMediaPlayer *mp);
@@ -187,7 +189,7 @@ long            ijkmp_get_duration(IjkMediaPlayer *mp);
 long            ijkmp_get_playable_duration(IjkMediaPlayer *mp);
 
 void           *ijkmp_set_weak_thiz(IjkMediaPlayer *mp, void *weak_thiz);
-
+void 		   *ijkmp_get_weak_thiz(IjkMediaPlayer *mp);
 /* return < 0 if aborted, 0 if no packet and > 0 if packet.  */
 int             ijkmp_get_msg(IjkMediaPlayer *mp, AVMessage *msg, int block);
 

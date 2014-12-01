@@ -45,7 +45,7 @@
 // #define FFP_SHOW_VDPS
 // #define FFP_SHOW_AUDIO_DELAY
 // #define FFP_SHOW_DEMUX_CACHE
-#define FFP_SHOW_BUF_POS
+// #define FFP_SHOW_BUF_POS
 // #define FFP_SHOW_PKT_RECYCLE
 
 // #define FFP_NOTIFY_BUF_TIME
@@ -2590,8 +2590,9 @@ static int read_thread(void *arg)
     if (is->subtitle_stream >= 0)
         stream_component_close(ffp, is->subtitle_stream);
 #endif
-    if (is->ic) {
+    if (ic) {
         avformat_close_input(&is->ic);
+        is->ic = NULL;
     }
 
     if (!ffp->prepared || !is->abort_request) {

@@ -2196,6 +2196,8 @@ static int read_thread(void *arg)
     }
     err = avformat_open_input(&ic, is->filename, is->iformat, &ffp->format_opts);
     if (err < 0) {
+        // add by Javan 2014.12.1. Let last_error to work.
+        last_error = err;
         print_error(is->filename, err);
         ret = -1;
         goto fail;
@@ -2207,6 +2209,7 @@ static int read_thread(void *arg)
         av_log(NULL, AV_LOG_ERROR, "Option %s not found.\n", t->key);
 #ifdef FFP_MERGE
         ret = AVERROR_OPTION_NOT_FOUND;
+        last_error = AVERROR_OPTION_NOT_FOUND;
         goto fail;
 #endif
     }
@@ -2227,6 +2230,9 @@ static int read_thread(void *arg)
     av_freep(&opts);
 
     if (err < 0) {
+        // add by Javan 2014.12.1. Let last_error to work.
+        last_error = err;
+
         av_log(NULL, AV_LOG_WARNING,
                "%s: could not find codec parameters\n", is->filename);
         ret = -1;
@@ -2338,6 +2344,7 @@ static int read_thread(void *arg)
         av_log(NULL, AV_LOG_FATAL, "Failed to open file '%s' or configure filtergraph\n",
                is->filename);
         ret = -1;
+        last_error = EIJK_STREAM_NOT_FOUND;
         goto fail;
     }
 
@@ -2477,6 +2484,10 @@ static int read_thread(void *arg)
                 stream_seek(is, ffp->start_time != AV_NOPTS_VALUE ? ffp->start_time : 0, 0, 0);
             } else if (ffp->autoexit) {
                 ret = AVERROR_EOF;
+                
+                // add by Javan 2014.12.1. Let last_error to work.
+                last_error = AVERROR_EOF;
+                
                 goto fail;
             } else {
                 if (completed) {

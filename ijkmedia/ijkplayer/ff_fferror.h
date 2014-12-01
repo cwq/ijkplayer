@@ -29,4 +29,9 @@
 #define EIJK_INVALID_STATE      -3
 #define EIJK_NULL_IS_PTR        -4
 
+
+// add by Javan 2014.12.1
+#define EIJK_STREAM_NOT_FOUND  	-20000  // 没有找到媒体流数据，Can not find any AVStream in meida stream. 
+    
+
 #endif

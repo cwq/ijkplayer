@@ -17,14 +17,17 @@
 package tv.danmaku.ijk.media.demo;
 
 import java.io.File;
+import java.io.IOException;
 
+import android.content.Intent;
+import android.os.AsyncTask;
+import android.os.Environment;
+import android.text.TextUtils;
+import android.util.Log;
 import tv.danmaku.ijk.media.widget.MediaController;
 import tv.danmaku.ijk.media.widget.VideoView;
 import android.app.Activity;
-import android.content.Intent;
 import android.os.Bundle;
-import android.os.Environment;
-import android.text.TextUtils;
 import android.view.View;
 
 public class VideoPlayerActivity extends Activity {
@@ -33,13 +36,39 @@ public class VideoPlayerActivity extends Activity {
 	private MediaController mMediaController;
 
 	private String mVideoPath;
+	private StreamProxy proxy;
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_player);
 
-		mVideoPath = "/sdcard/download/720.flv";
+		mVideoPath = "http://mvvideo1.meitudata.com/5517ac4679dbe8010.mp4";
+//		new DownloadTask().execute(mVideoPath);
+//		mVideoPath = "/mnt/sdcard/kaka.mp4";
+		if (proxy == null) {
+			try {
+				proxy = new StreamProxy(mVideoPath, new StreamProxy.ProxyCallback() {
+					@Override
+					public void onError() {
+						Log.d("JAVAN", "onError");
+					}
+
+					@Override
+					public void onNetError() {
+						Log.d("JAVAN", "onNetError");
+					}
+				});
+				proxy.init();
+				proxy.start();
+			} catch (Exception e) {
+				proxy = null;
+			}
+		}
+
+		String playUrl = mVideoPath;
+		playUrl = String.format("http://127.0.0.1:%d/%s", proxy.getPort(), mVideoPath);
+		Log.d("JAVAN", "playUrl : " + playUrl);
 
 		Intent intent = getIntent();
 		String intentAction = intent.getAction();
@@ -59,8 +88,38 @@ public class VideoPlayerActivity extends Activity {
 		mVideoView = (VideoView) findViewById(R.id.video_view);
 		mVideoView.setMediaController(mMediaController);
 		mVideoView.setMediaBufferingIndicator(mBufferingIndicator);
-		mVideoView.setVideoPath(mVideoPath);
+		mVideoView.setVideoPath(playUrl);
 		mVideoView.requestFocus();
 		mVideoView.start();
 	}
+
+//	private class DownloadTask extends AsyncTask<String, Long, File> {
+//		protected File doInBackground(String... urls) {
+//			File file = null;
+//			try {
+//				HttpRequestUtil request =  HttpRequestUtil.get(urls[0]);
+//				if (request.ok()) {
+//					file = File.createTempFile("download", ".tmp");
+//					request.receive(file);
+//					publishProgress(file.length());
+//				}
+//			} catch (HttpRequestUtil.HttpRequestException exception) {
+//			} catch (IOException e) {
+//				e.printStackTrace();
+//			} finally {
+//				return file;
+//			}
+//		}
+//
+//		protected void onProgressUpdate(Long... progress) {
+//			Log.d("MyApp", "Downloaded bytes: " + progress[0]);
+//		}
+//
+//		protected void onPostExecute(File file) {
+//			if (file != null)
+//				Log.d("MyApp", "Downloaded file to: " + file.getAbsolutePath());
+//			else
+//				Log.d("MyApp", "Download failed");
+//		}
+//	}
 }

@@ -44,6 +44,7 @@ public class VideoPlayerActivity extends Activity {
 		setContentView(R.layout.activity_player);
 
 		mVideoPath = "http://mvvideo1.meitudata.com/5517ac4679dbe8010.mp4";
+//		mVideoPath = "http://mvvideo1.meitudata.com/5524c39336c132760.mp4";
 //		new DownloadTask().execute(mVideoPath);
 //		mVideoPath = "/mnt/sdcard/kaka.mp4";
 		if (proxy == null) {

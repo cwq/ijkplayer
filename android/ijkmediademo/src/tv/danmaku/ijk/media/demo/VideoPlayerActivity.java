@@ -44,7 +44,7 @@ public class VideoPlayerActivity extends Activity {
 		setContentView(R.layout.activity_player);
 
 		mVideoPath = "http://mvvideo1.meitudata.com/5517ac4679dbe8010.mp4";
-//		mVideoPath = "http://mvvideo1.meitudata.com/5524c39336c132760.mp4";
+//		mVideoPath = "http://mvvideo1.meitudata.com/55211a14c80812213.mp4?timeout=3000000";
 //		new DownloadTask().execute(mVideoPath);
 //		mVideoPath = "/mnt/sdcard/kaka.mp4";
 		if (proxy == null) {
@@ -66,7 +66,6 @@ public class VideoPlayerActivity extends Activity {
 				proxy = null;
 			}
 		}
-
 		String playUrl = mVideoPath;
 		playUrl = String.format("http://127.0.0.1:%d/%s", proxy.getPort(), mVideoPath);
 		Log.d("JAVAN", "playUrl : " + playUrl);
@@ -92,9 +91,25 @@ public class VideoPlayerActivity extends Activity {
 		mVideoView.setVideoPath(playUrl);
 		mVideoView.requestFocus();
 		mVideoView.start();
+
+		findViewById(R.id.btn_reload).setOnClickListener(new View.OnClickListener() {
+			@Override
+			public void onClick(View view) {
+				finish();
+				Intent intent1 = new Intent(VideoPlayerActivity.this, VideoPlayerActivity.class);
+				startActivity(intent1);
+			}
+		});
 	}
 
-//	private class DownloadTask extends AsyncTask<String, Long, File> {
+	@Override
+	protected void onDestroy() {
+		super.onDestroy();
+
+		proxy.stop(false);
+	}
+
+	//	private class DownloadTask extends AsyncTask<String, Long, File> {
 //		protected File doInBackground(String... urls) {
 //			File file = null;
 //			try {

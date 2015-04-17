@@ -95,6 +95,10 @@ public class VideoPlayerActivity extends Activity {
 		findViewById(R.id.btn_reload).setOnClickListener(new View.OnClickListener() {
 			@Override
 			public void onClick(View view) {
+				if (proxy != null) {
+					proxy.stop(false);
+					proxy = null;
+				}
 				finish();
 				Intent intent1 = new Intent(VideoPlayerActivity.this, VideoPlayerActivity.class);
 				startActivity(intent1);
@@ -106,7 +110,10 @@ public class VideoPlayerActivity extends Activity {
 	protected void onDestroy() {
 		super.onDestroy();
 
-		proxy.stop(false);
+		if (proxy != null) {
+			proxy.stop(false);
+			proxy = null;
+		}
 	}
 
 	//	private class DownloadTask extends AsyncTask<String, Long, File> {

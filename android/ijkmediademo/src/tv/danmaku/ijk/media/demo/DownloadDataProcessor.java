@@ -46,8 +46,6 @@ public class DownloadDataProcessor extends DataProcessor {
     // 存储已经保存好的块数据
     // [a,b)  数据范围 a <= 索引 < b.
     private HashMap<Long, Long> downloadedBlock = new HashMap<Long, Long>(30);
-    // 临时拼接前后下载链接的数据块
-    private HashMap<Long, Long> tmpBlocks = new HashMap<Long, Long>(2);
 
     // 位于前部的下载任务
     private static final int TASK_FRONT = 0;
@@ -79,22 +77,18 @@ public class DownloadDataProcessor extends DataProcessor {
             return;
         }
 
-        tmpBlocks.clear();
-
         for (int i = 0; i < rangDownloadTasks.length; i++) {
             rangDownloadTasks[i].doSomeWork(true);
-            DownloadStatus status = rangDownloadTasks[i].status;
-            tmpBlocks.put(status.download_start, status.write_off);
         }
 
-        connectBlocks(tmpBlocks);
+        connectBlocks(downloadedBlock);
 
-        if (!isAllFinished && !tmpBlocks.isEmpty() && tmpBlocks.size() == 1) {  // 判断是否已经下载完成了
-            if (tmpBlocks.get(Long.valueOf(0)) != null) {
-                if (mFileSize == tmpBlocks.get(0L)) {
+        if (!isAllFinished && !downloadedBlock.isEmpty() && downloadedBlock.size() == 1) {  // 判断是否已经下载完成了
+            if (downloadedBlock.get(Long.valueOf(0)) != null) {
+                if (mFileSize == downloadedBlock.get(0L)) {
                     // file 完整下载了
                     isAllFinished = true;
-                } else if (tmpBlocks.get(0L) > rangDownloadTasks[TASK_BEHIND].status.download_start){
+                } else if (downloadedBlock.get(0L) > rangDownloadTasks[TASK_BEHIND].status.download_start){
 //                    // 说明下载的数据已经拼接起来了
 //                    mainTask = TASK_BEHIND;
                 }
@@ -142,7 +136,7 @@ public class DownloadDataProcessor extends DataProcessor {
 
     @Override
     public void seekTo(StreamProxy.BlockHttpRequest request) throws Exception {
-        Log.e(LOG_TAG, "Begin to seek to request " + request.rangeStart + " mainTask " + mainTask);
+        Log.d(LOG_TAG, "Begin to seek to request " + request.rangeStart + " mainTask " + mainTask);
         int remove_index = mainTask == TASK_FRONT ? TASK_BEHIND : TASK_FRONT;
 
         // 将当前已经下载的部分当做一个block参与计算
@@ -185,7 +179,26 @@ public class DownloadDataProcessor extends DataProcessor {
                     // 没找到
                     rangDownloadTasks[mainTask].start(null);
                 } else {
-                    rangDownloadTasks[mainTask].start(null);
+                    StreamProxy.BlockHttpRequest blockRequest = mRequest.copy();
+                    // 不需要传递给客户端，只是缓冲数据
+                    blockRequest.client = null;
+                    blockRequest.rangeStart = position;
+                    blockRequest.downloadStart = blockRequest.rangeStart;
+
+                    if (downloadedBlock.containsValue(mFileSize)) {
+                        // 找到最靠近尾部的开始
+                        long new_end = -1;
+                        for (Map.Entry<Long,Long> entry : entrySet) {
+                            if (entry.getValue() == mFileSize) {
+                                new_end = entry.getKey();
+                                break;
+                            }
+                        }
+                        request.rangeEnd = new_end;
+                    } else {
+                    }
+
+                    rangDownloadTasks[mainTask].start(blockRequest);
                 }
             } else {
                 // 正在结束
@@ -213,10 +226,10 @@ public class DownloadDataProcessor extends DataProcessor {
                 // 判断位置是否在另外一个下载块，已经下载的区间内
                 if (position >= maybeRangeStatus.download_start && maybeRangeStatus.write_off >= position) {    // 在后备下载区间范围之内
                     mainTask = remove_index;
-                    Log.e(LOG_TAG, "JAVAN1 position " + position + " mainTask " + mainTask);
+                    Log.w(LOG_TAG, "JAVAN1 position " + position + " mainTask " + mainTask);
                 } else if (position >= maybeRangeStatus.write_off && position - maybeRangeStatus.write_off <= WAIT_CACHE_SIZE) {  // 比后备下载
                     if (position > request.rangeStart && (position - request.rangeStart) > WAIT_CACHE_SIZE ) {
-                        Log.e(LOG_TAG, "JAVAN position "+ position + " far away from request " + request.rangeStart);
+                        Log.w(LOG_TAG, "JAVAN position "+ position + " far away from request " + request.rangeStart);
                         mainTask = remove_index;
                     } else {
                         do {
@@ -237,11 +250,11 @@ public class DownloadDataProcessor extends DataProcessor {
                             mainTask = remove_index;
                         }
                     }
-                    Log.e(LOG_TAG, "JAVAN2 position " + position + " mainTask " + mainTask);
+                    Log.w(LOG_TAG, "JAVAN2 position " + position + " mainTask " + mainTask);
                 } else {
                     if (position == focusDownloadStatus.write_off) {
                         // 刚好等于焦点的当前标志位不需要创建新的链接
-                        Log.e(LOG_TAG, "JAVAN2 position " + position + " focusDownloadStatus.write_off " + focusDownloadStatus.write_off);
+                        Log.w(LOG_TAG, "JAVAN2 position " + position + " focusDownloadStatus.write_off " + focusDownloadStatus.write_off);
                     } else if (position == maybeRangeStatus.write_off) {
                         mainTask = remove_index;
                     } else if (position > maybeRangeStatus.write_off) {
@@ -253,7 +266,7 @@ public class DownloadDataProcessor extends DataProcessor {
                         }
                         restartDownload(request, remove_index);
                         mainTask = remove_index;
-                        Log.e(LOG_TAG, "JAVAN3 position " + position + " mainTask " + mainTask);
+                        Log.w(LOG_TAG, "JAVAN3 position " + position + " mainTask " + mainTask);
                     } else if (position > focusDownloadStatus.write_off) {
                         if (downloadedBlock.containsValue(mFileSize)) {
                             long new_end = -1;
@@ -272,9 +285,11 @@ public class DownloadDataProcessor extends DataProcessor {
                             restartDownload(request, remove_index);
                             mainTask = remove_index;
                         } else {
-                            restartDownload(request, mainTask);
+                            if (rangDownloadTasks[mainTask].status.write_off != position) { // 如果不刚好等于main写入节点的时候
+                                restartDownload(request, mainTask);
+                            }
                         }
-                        Log.e(LOG_TAG, "JAVAN4 position " + position + " mainTask " + mainTask);
+                        Log.w(LOG_TAG, "JAVAN4 position " + position + " mainTask " + mainTask);
                     } else {
                         if (position < focusDownloadStatus.download_start) {    // 在当前下载的前面，使用另外一个备用下载链接请求该数据
                             request.downloadStart = position;
@@ -295,9 +310,9 @@ public class DownloadDataProcessor extends DataProcessor {
 
                             restartDownload(request, remove_index);
                             mainTask = remove_index;
-                            Log.e(LOG_TAG, "JAVAN4 position " + position + " mainTask " + mainTask);
+                            Log.w(LOG_TAG, "JAVAN4 position " + position + " mainTask " + mainTask);
                         } else {
-                            Log.e(LOG_TAG, "No TODO condition");
+                            Log.w(LOG_TAG, "No TODO condition");
                         }
                     }
                     return;
@@ -308,7 +323,7 @@ public class DownloadDataProcessor extends DataProcessor {
         }
 
         sendFalseInfoToClient(request);
-        Log.e(LOG_TAG, "final  mainTask " + mainTask);
+        Log.d(LOG_TAG, "final  mainTask " + mainTask);
     }
 
     private void sendFalseInfoToClient(StreamProxy.BlockHttpRequest request) {
@@ -478,6 +493,8 @@ public class DownloadDataProcessor extends DataProcessor {
         // 网络数据读入扣
         private InputStream fileData;
         private long lastReadOff = -1;
+        // 是否到了加载数据尾部
+        private int eof = 0;
 
         /**
          * 区间下载任务
@@ -519,10 +536,12 @@ public class DownloadDataProcessor extends DataProcessor {
             try {
                 long begin = SystemClock.elapsedRealtime();
                 readBytes = fileData.read(buff, 0, buff.length);
-                if (readBytes > 0)
+                if (readBytes > 0 && SystemClock.elapsedRealtime() - begin > 100)
                     Log.d(LOG_TAG, "Javan end fileData.read readBytes " + readBytes + " cost time " + (SystemClock.elapsedRealtime() - begin));
-                else
+                else if (readBytes < 0){
+                    eof = 1;
                     Log.w(LOG_TAG, "Socket download read nothing.");
+                }
             }  catch (IOException e) {
                 e.printStackTrace();
                 Log.w(LOG_TAG, e);
@@ -672,6 +691,7 @@ public class DownloadDataProcessor extends DataProcessor {
                 status.read_off = request.downloadStart;
                 status.download_start = request.downloadStart;
                 write_total = 0;
+                eof = 0;
             }
         }
 
@@ -683,7 +703,7 @@ public class DownloadDataProcessor extends DataProcessor {
         }
 
         public boolean isEnded() {
-            return write_total == mContentLength;
+            return write_total == mContentLength || eof != 0;
         }
     }
 

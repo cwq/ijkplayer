@@ -503,7 +503,7 @@ public class MediaController extends FrameLayout {
                         mPlayer.seekTo(newposition);
                     }
                 };
-                mHandler.postDelayed(lastRunnable, 200);
+                mHandler.postDelayed(lastRunnable, 100);
             }
             if (mInfoView != null)
                 mInfoView.setText(time);

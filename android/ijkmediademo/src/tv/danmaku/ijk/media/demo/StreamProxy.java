@@ -65,7 +65,7 @@ public class StreamProxy implements Runnable {
         try {
             mIsComplete = false;
             mServerSocket = new ServerSocket(port, 0, InetAddress.getByAddress(new byte[] {127, 0, 0, 1}));
-            mServerSocket.setSoTimeout(5000);
+            mServerSocket.setSoTimeout(500);
             port = mServerSocket.getLocalPort();
             pool = Executors.newSingleThreadExecutor();
             Log.d(LOG_TAG, "port " + port + " obtained");
@@ -169,7 +169,7 @@ public class StreamProxy implements Runnable {
     }
 
     // 当前Http请求的块
-    class BlockHttpRequest {
+    public static class BlockHttpRequest {
         String url;
         String method;
         String user_agent;
@@ -204,7 +204,7 @@ public class StreamProxy implements Runnable {
         public BlockHttpRequest copy() {
             BlockHttpRequest res = new BlockHttpRequest();
 
-            res.method = method;
+            res.method = this.method;
             res.user_agent = user_agent;
             res.url = url;
 

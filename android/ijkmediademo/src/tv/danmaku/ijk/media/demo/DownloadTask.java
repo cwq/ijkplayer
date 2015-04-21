@@ -1,5 +1,7 @@
 package tv.danmaku.ijk.media.demo;
 
+import android.annotation.TargetApi;
+import android.os.Build;
 import android.os.Handler;
 import android.os.Message;
 import android.os.SystemClock;
@@ -17,13 +19,19 @@ import java.security.NoSuchAlgorithmException;
 public class DownloadTask implements Handler.Callback {
     private static final String LOG_TAG = Class.class.getSimpleName();
     // 执行开始
-    private static final int MSG_START = 0x01;
+    static final int MSG_START = 0x01;
     // 执行停止
-    private static final int MSG_STOP = 0x02;
+    static final int MSG_STOP = 0x02;
     // 执行下载
-    private static final int MSG_DOING_DOWNLOAD = 0x03;
+    static final int MSG_DOING_DOWNLOAD = 0x03;
     // 定位到指定块数据
-    private static final int MSG_SEEK_BLOCK = 0x04;
+    static final int MSG_SEEK_BLOCK = 0x04;
+    // 定位到指定块数据
+    static final int MSG_ERROR = 0x05;
+    // 发送下载状态数据
+    static final int MSG_UPDATE_DOWNLOAD_STATUS = 0x06;
+    // 优化改变下载区间
+    public static final int MSG_CHANGE_RANGE = 0x07;
 
     public static final int STATE_IDLE = -1;
 
@@ -35,12 +43,19 @@ public class DownloadTask implements Handler.Callback {
      */
     public static final int STATE_READY = 4;
 
-    private static final int DOWNLOADING_INTERVAL_MS = 10;
+    private static final int DOWNLOADING_INTERVAL_MS = 20;
     private static final int IDLE_INTERVAL_MS = 1000;
+    private static final int PROCESSOR_DOWNLOAD_STATUS = 0;
+
+    public interface DownloadTaskCallback {
+        void notifyMessage(String mes);
+    }
 
     private final PriorityHandlerThread internalDownThread;
     private final Handler handler;
     private DownloadStatus status;
+
+    DownloadTaskCallback callback;
 
     int state = STATE_IDLE;
     // 当前正在使用下载的block
@@ -64,8 +79,17 @@ public class DownloadTask implements Handler.Callback {
         }
 
         processors = new DataProcessor[2];
-        processors[0] = new DownloadDataProcessor(request, cachePath, status);
+        processors[PROCESSOR_DOWNLOAD_STATUS] = new DownloadStatusProcessor(request, cachePath, status);
         processors[1] = new SendToClientDataProcessor(request, cachePath, status);
+
+    }
+
+    public DownloadTaskCallback getCallback() {
+        return callback;
+    }
+
+    public void setCallback(DownloadTaskCallback callback) {
+        this.callback = callback;
     }
 
     /**
@@ -85,8 +109,9 @@ public class DownloadTask implements Handler.Callback {
     /**
      * 释放内存
      */
+    @TargetApi(Build.VERSION_CODES.JELLY_BEAN_MR2)
     void release() {
-        internalDownThread.quit();
+        internalDownThread.quitSafely();
     }
 
     void seekTo(BlockHttpRequest request) {
@@ -96,15 +121,19 @@ public class DownloadTask implements Handler.Callback {
 
     @Override
     public boolean handleMessage(Message message) {
+        boolean handled = false;
         switch (message.what) {
             case MSG_START:
                 startInternal();
+                handled = true;
                 break;
             case MSG_STOP:
                 stopInternal();
+                handled = true;
                 break;
             case MSG_DOING_DOWNLOAD:
                 downloadData();
+                handled = true;
                 break;
             case MSG_SEEK_BLOCK:
                 try {
@@ -112,10 +141,12 @@ public class DownloadTask implements Handler.Callback {
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
+                handled = true;
+                break;
             default:
                 break;
         }
-        return false;
+        return handled;
     }
 
     private void stopInternal() {
@@ -160,7 +191,6 @@ public class DownloadTask implements Handler.Callback {
 
         for (int i = 0; i < processors.length; i++) {
             processors[i].doSomeWork();
-
             isEnded = isEnded && processors[i].isEnded();
         }
 

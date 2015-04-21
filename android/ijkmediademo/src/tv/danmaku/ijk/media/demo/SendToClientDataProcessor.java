@@ -36,7 +36,7 @@ public class SendToClientDataProcessor extends DataProcessor {
     @Override
     void doSomeWork() {
         long read_len = buff.length;
-
+//        Log.d(LOG_TAG, "mDownloadStatus.write_off " + mDownloadStatus.write_off + " mDownloadStatus.read_off " + mDownloadStatus.read_off);
         long unread = mDownloadStatus.write_off - mDownloadStatus.read_off;
 
         if (unread > 0 && unread < read_len) {
@@ -58,15 +58,17 @@ public class SendToClientDataProcessor extends DataProcessor {
                 return;
             }
 
-            readBytes = randomAccessFile.read(buff, 0, (int)read_len);
-            if (readBytes >= 0) {
-                outputStream.write(buff, 0, readBytes);
-                mDownloadStatus.read_off += readBytes;
+            if (outputStream != null) {
+                readBytes = randomAccessFile.read(buff, 0, (int) read_len);
+                if (readBytes >= 0) {
+                    outputStream.write(buff, 0, readBytes);
+                    mDownloadStatus.read_off += readBytes;
 
-                Log.d(LOG_TAG, "read_off " + mDownloadStatus.read_off + " old read_off " + (mDownloadStatus.read_off - readBytes) + " readBytes " + readBytes);
+                    Log.d(LOG_TAG, "read_off " + mDownloadStatus.read_off + " old read_off " + (mDownloadStatus.read_off - readBytes) + " readBytes " + readBytes);
+                }
+                outputStream.flush();
             }
 
-            outputStream.flush();
         } catch (IOException e) {
             Log.e(LOG_TAG, " Thread id " + Thread.currentThread().getId() + " error: " + e);
         }

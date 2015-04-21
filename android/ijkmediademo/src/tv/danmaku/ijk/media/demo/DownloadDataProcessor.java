@@ -153,10 +153,6 @@ public class DownloadDataProcessor extends DataProcessor {
 
         if (position == focusDownloadStatus.write_off || position == mFileSize) {   // 刚好等于当前下载位置，或是请求新的下载位置直接就是文件的大小，说明从请求到文件结束段的数据已经下载好了。
             // 说明新的位置数据已经下载好了不需要移动下载位置,继续下载就好
-//            for (int i = 0; i < rangDownloadTasks.length; i++) {
-//                downloadedBlock.remove(rangDownloadTasks[i].status.download_start);
-//            }
-
         } else if (position > focusDownloadStatus.write_off && position - focusDownloadStatus.write_off < WAIT_CACHE_SIZE) {
             do {
                 rangDownloadTasks[mainTask].doSomeWork(false);
@@ -205,9 +201,6 @@ public class DownloadDataProcessor extends DataProcessor {
             }
         } else if (position >= focusDownloadStatus.download_start && position <= focusDownloadStatus.write_off) {
             // 位置刚好在当前下载快范围内
-//            for (int i = 0; i < rangDownloadTasks.length; i++) {
-//                downloadedBlock.remove(rangDownloadTasks[i].status.download_start);
-//            }
         } else { // 需要重启链接的情况
             // 需要发起新的请求距离偏大，但是我们可以check下位于后部的下载请求是否
             DownloadStatus maybeRangeStatus = rangDownloadTasks[remove_index].status;
@@ -536,11 +529,11 @@ public class DownloadDataProcessor extends DataProcessor {
             try {
                 long begin = SystemClock.elapsedRealtime();
                 readBytes = fileData.read(buff, 0, buff.length);
-                if (readBytes > 0 && SystemClock.elapsedRealtime() - begin > 100)
+                if (readBytes > 0 && SystemClock.elapsedRealtime() - begin > -1)
                     Log.d(LOG_TAG, "Javan end fileData.read readBytes " + readBytes + " cost time " + (SystemClock.elapsedRealtime() - begin));
                 else if (readBytes < 0){
                     eof = 1;
-                    Log.w(LOG_TAG, "Socket download read nothing.");
+//                    Log.w(LOG_TAG, "Socket download read nothing.");
                 }
             }  catch (IOException e) {
                 e.printStackTrace();

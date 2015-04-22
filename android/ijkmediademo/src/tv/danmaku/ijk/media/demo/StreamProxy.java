@@ -153,7 +153,7 @@ public class StreamProxy implements Runnable, DownloadTask.DownloadTaskCallback 
         while (isRunning) {
             try {
 //                Log.d(LOG_TAG, "waiting accept");
-                final Socket client = mServerSocket.accept();
+                Socket client = mServerSocket.accept();
                 if (client == null) {
                     continue;
                 }
@@ -163,7 +163,11 @@ public class StreamProxy implements Runnable, DownloadTask.DownloadTaskCallback 
                     mSockets.add(client);
                 }
                 // 获取请求
-                final BlockHttpRequest request = readRequest(client);
+                BlockHttpRequest request = readRequest(client);
+
+                if (request == null) {
+                    continue;
+                }
 
                 Log.d(LOG_TAG, "Javan new Client is:[" + client.getPort() + "]" + " request start " + request.rangeStart);
 
@@ -237,6 +241,10 @@ public class StreamProxy implements Runnable, DownloadTask.DownloadTaskCallback 
     }
 
     private BlockHttpRequest readRequest(Socket client) {
+        if (client == null) {
+            return null;
+        }
+
         BlockHttpRequest request = null;
         InputStream is;
         String firstLine;

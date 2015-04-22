@@ -108,6 +108,8 @@ public class VideoView extends SurfaceView implements
     private boolean mCanSeekBack = true;
     private boolean mCanSeekForward = true;
     private Context mContext;
+    private boolean mLooping;
+    private boolean mRequestLooping = false;
 
     public VideoView(Context context) {
         super(context);
@@ -592,6 +594,10 @@ public class VideoView extends SurfaceView implements
     @Override
     public void start() {
         if (isInPlaybackState()) {
+            if (mRequestLooping) {
+                setLooping(mLooping);
+                mRequestLooping = false;
+            }
             mMediaPlayer.start();
             mCurrentState = STATE_PLAYING;
         }
@@ -683,5 +689,15 @@ public class VideoView extends SurfaceView implements
 
     public boolean canSeekForward() {
         return mCanSeekForward;
+    }
+
+    public void setLooping(boolean b) {
+        if (mMediaPlayer != null) {
+            mLooping = b;
+            mMediaPlayer.setLooping(b ? 0: 1);
+        } else {
+            mLooping = b;
+            mRequestLooping = true;
+        }
     }
 }

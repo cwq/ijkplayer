@@ -12,6 +12,7 @@ import java.io.RandomAccessFile;
  */
 public class SendToClientDataProcessor extends DataProcessor {
     private static final String LOG_TAG = SendToClientDataProcessor.class.getSimpleName();
+
     private StreamProxy.BlockHttpRequest mRequest;
     private DownloadStatus mDownloadStatus;
     private RandomAccessFile randomAccessFile;
@@ -52,7 +53,12 @@ public class SendToClientDataProcessor extends DataProcessor {
             int readBytes = -1;
             OutputStream outputStream = null;
             try {
-                outputStream = mRequest.client.getOutputStream();
+                if (mRequest.client != null && !mRequest.client.isClosed())
+                    outputStream = mRequest.client.getOutputStream();
+                else {
+                    // nothing to do.
+                    return;
+                }
             } catch (IOException e) {
                 e.printStackTrace();
                 return;
@@ -66,12 +72,14 @@ public class SendToClientDataProcessor extends DataProcessor {
 
                     Log.d(LOG_TAG, "read_off " + mDownloadStatus.read_off + " old read_off " + (mDownloadStatus.read_off - readBytes) + " readBytes " + readBytes);
                 }
+
                 outputStream.flush();
             }
 
         } catch (IOException e) {
             Log.e(LOG_TAG, " Thread id " + Thread.currentThread().getId() + " error: " + e);
         }
+
     }
 
     @Override
@@ -81,8 +89,16 @@ public class SendToClientDataProcessor extends DataProcessor {
 
     @Override
     public void seekTo(StreamProxy.BlockHttpRequest request) {
+        try {
+            mRequest.client.close();
+            mRequest.client = null;
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
         mRequest = request;
         mDownloadStatus.read_off = request.rangeStart;
+
 
         try {
             randomAccessFile.seek(request.rangeStart);

@@ -166,6 +166,12 @@ public class RangDownloadThread extends PriorityHandlerThread implements Handler
 		}
 
 		Log.e(LOG_TAG, "JAVAN  synchronizePostRequest end cost " + (SystemClock.elapsedRealtime() - start));
+		StringBuilder info = new StringBuilder(256);
+
+		info.append("开启网络请求使用时长:").append((SystemClock.elapsedRealtime() - start));
+
+		Message message = eventHandler.obtainMessage(DownloadTask.MSG_NOTIFY_INFO, info.toString());
+		eventHandler.sendMessage(message);
 	}
 
 	private void sendDownloadStatus() {
@@ -308,6 +314,7 @@ public class RangDownloadThread extends PriorityHandlerThread implements Handler
 				input_stream.close();
 				input_stream = null;
 				sendDownloadStatus();
+				return;
 			} else {
 				// 通知主控制着现在下载数据的变化
 				if (last_send_time < 0 || SystemClock.elapsedRealtime() - last_send_time > 30) {
@@ -408,7 +415,7 @@ public class RangDownloadThread extends PriorityHandlerThread implements Handler
 					}
 				}
 				httpString.append("Content-Range: bytes ").append(request.rangeStart)
-						.append("-6709786/6709787").append("\n");
+						.append("-").append(file_size-1).append('/').append(file_size).append("\n");
 			} else {
 				httpString.append(h.getName()).append(": ").append(h.getValue()).append("\n");
 			}
@@ -433,7 +440,7 @@ public class RangDownloadThread extends PriorityHandlerThread implements Handler
 		if (!error && request.client != null) {
 			byte[] buffer = httpString.toString().getBytes();
 
-			Log.d(LOG_TAG, httpString.toString());
+//			Log.d(LOG_TAG, httpString.toString());
 
 			try {
 				request.client.getOutputStream().write(buffer, 0, buffer.length);

@@ -24,6 +24,7 @@ import android.os.AsyncTask;
 import android.os.Environment;
 import android.text.TextUtils;
 import android.util.Log;
+import android.widget.Toast;
 import tv.danmaku.ijk.media.widget.MediaController;
 import tv.danmaku.ijk.media.widget.VideoView;
 import android.app.Activity;
@@ -43,10 +44,19 @@ public class VideoPlayerActivity extends Activity {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_player);
 
-		mVideoPath = "http://mvvideo1.meitudata.com/5517ac4679dbe8010.mp4";
-//		mVideoPath = "http://mvvideo1.meitudata.com/55211a14c80812213.mp4?timeout=3000000";
-//		new DownloadTask().execute(mVideoPath);
-//		mVideoPath = "/mnt/sdcard/kaka.mp4";
+		Intent intent = getIntent();
+		String intentAction = intent.getAction();
+		if (!TextUtils.isEmpty(intentAction)
+				&& intentAction.equals(Intent.ACTION_VIEW)) {
+			mVideoPath = intent.getDataString();
+		} else {
+			mVideoPath = intent.getDataString();
+		}
+
+		if (TextUtils.isEmpty(mVideoPath)) {
+			mVideoPath = "http://mvvideo1.meitudata.com/55211a14c80812213.mp4";
+		}
+
 		if (proxy == null) {
 			try {
 				proxy = new StreamProxy(mVideoPath, new StreamProxy.ProxyCallback() {
@@ -59,6 +69,11 @@ public class VideoPlayerActivity extends Activity {
 					public void onNetError() {
 						Log.d("JAVAN", "onNetError");
 					}
+
+					@Override
+					public void notifyMessage(String message) {
+						Toast.makeText(VideoPlayerActivity.this, message, Toast.LENGTH_SHORT).show();
+					}
 				});
 				proxy.init();
 				proxy.start();
@@ -70,18 +85,6 @@ public class VideoPlayerActivity extends Activity {
 		playUrl = String.format("http://127.0.0.1:%d/%s", proxy.getPort(), mVideoPath);
 		Log.d("JAVAN", "playUrl : " + playUrl);
 
-		Intent intent = getIntent();
-		String intentAction = intent.getAction();
-		if (!TextUtils.isEmpty(intentAction)
-				&& intentAction.equals(Intent.ACTION_VIEW)) {
-			mVideoPath = intent.getDataString();
-		}
-
-		if (TextUtils.isEmpty(mVideoPath)) {
-			mVideoPath = new File(Environment.getExternalStorageDirectory(),
-					"download/test.mp4").getAbsolutePath();
-		}
-
 		mBufferingIndicator = findViewById(R.id.buffering_indicator);
 		mMediaController = new MediaController(this);
 
@@ -90,6 +93,7 @@ public class VideoPlayerActivity extends Activity {
 		mVideoView.setMediaBufferingIndicator(mBufferingIndicator);
 		mVideoView.setVideoPath(playUrl);
 		mVideoView.requestFocus();
+		mVideoView.setLooping(true);
 		mVideoView.start();
 
 		findViewById(R.id.btn_reload).setOnClickListener(new View.OnClickListener() {

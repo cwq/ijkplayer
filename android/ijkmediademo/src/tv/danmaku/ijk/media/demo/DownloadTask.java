@@ -32,6 +32,8 @@ public class DownloadTask implements Handler.Callback {
     static final int MSG_UPDATE_DOWNLOAD_STATUS = 0x06;
     // 优化改变下载区间
     public static final int MSG_CHANGE_RANGE = 0x07;
+    // 线程消息
+    public static final int MSG_NOTIFY_INFO = 0x08;
 
     public static final int STATE_IDLE = -1;
 
@@ -46,6 +48,11 @@ public class DownloadTask implements Handler.Callback {
     private static final int DOWNLOADING_INTERVAL_MS = 20;
     private static final int IDLE_INTERVAL_MS = 1000;
     private static final int PROCESSOR_DOWNLOAD_STATUS = 0;
+
+    public void sendMessage(Object obj) {
+        Message message = handler.obtainMessage(DownloadTask.MSG_NOTIFY_INFO, obj);
+        handler.sendMessage(message);
+    }
 
     public interface DownloadTaskCallback {
         void notifyMessage(String mes);
@@ -79,7 +86,7 @@ public class DownloadTask implements Handler.Callback {
         }
 
         processors = new DataProcessor[2];
-        processors[PROCESSOR_DOWNLOAD_STATUS] = new DownloadStatusProcessor(request, cachePath, status);
+        processors[PROCESSOR_DOWNLOAD_STATUS] = new DownloadStatusProcessor(request, cachePath, status, this);
         processors[1] = new SendToClientDataProcessor(request, cachePath, status);
 
     }
@@ -143,6 +150,13 @@ public class DownloadTask implements Handler.Callback {
                 }
                 handled = true;
                 break;
+            case MSG_NOTIFY_INFO:
+            {
+                if (callback != null) {
+                    callback.notifyMessage((String) message.obj);
+                }
+            }
+            break;
             default:
                 break;
         }
@@ -150,6 +164,8 @@ public class DownloadTask implements Handler.Callback {
     }
 
     private void stopInternal() {
+        Log.e(LOG_TAG, "Javan stopInternal");
+
         if (state == STATE_IDLE) {
             return;
         }
@@ -185,25 +201,21 @@ public class DownloadTask implements Handler.Callback {
     }
 
     private void downloadData() {
-        boolean isEnded = true;
-
         long operationStartTimeMs = SystemClock.elapsedRealtime();
 
         for (int i = 0; i < processors.length; i++) {
             processors[i].doSomeWork();
-            isEnded = isEnded && processors[i].isEnded();
-        }
-
-        if (isEnded) {
-            // 所有传输任务都已经完成了。
         }
 
         handler.removeMessages(MSG_DOING_DOWNLOAD);
+
         if ((/*playWhenReady &&*/ state == STATE_READY) || state == STATE_BUFFERING) {
             scheduleNextOperation(MSG_DOING_DOWNLOAD, operationStartTimeMs, DOWNLOADING_INTERVAL_MS);
         } else if (processors.length != 0) {
-//            scheduleNextOperation(MSG_DOING_DOWNLOAD, operationStartTimeMs, IDLE_INTERVAL_MS);
+            scheduleNextOperation(MSG_DOING_DOWNLOAD, operationStartTimeMs, IDLE_INTERVAL_MS);
+        } else {
         }
+
     }
 
     private void scheduleNextOperation(int operationType, long thisOperationStartTimeMs,

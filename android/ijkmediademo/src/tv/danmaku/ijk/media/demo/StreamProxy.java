@@ -1,5 +1,6 @@
 package tv.danmaku.ijk.media.demo;
 
+import android.os.Handler;
 import android.text.TextUtils;
 import android.util.Log;
 import org.apache.http.HttpRequest;
@@ -14,7 +15,7 @@ import java.util.StringTokenizer;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-public class StreamProxy implements Runnable {
+public class StreamProxy implements Runnable, DownloadTask.DownloadTaskCallback {
 
     private static final String LOG_TAG = StreamProxy.class.getSimpleName();
 
@@ -36,10 +37,26 @@ public class StreamProxy implements Runnable {
     // 当前正在进行下载的现成
     private DownloadTask downloadThread;
 
+    private Handler handler = new Handler();
+
+    @Override
+    public void notifyMessage(final String mes) {
+        if (proxyCallback != null) {
+            handler.post(new Runnable() {
+                @Override
+                public void run() {
+                    proxyCallback.notifyMessage(mes);
+                }
+            });
+        }
+    }
+
     public interface ProxyCallback {
         public void onError();
 
         public void onNetError();
+
+        void notifyMessage(String message);
     }
 
     public StreamProxy(String url, ProxyCallback proxyCallback) {
@@ -153,9 +170,11 @@ public class StreamProxy implements Runnable {
                 if (isRunning) {
                     if (downloadThread == null) {
                         downloadThread = new DownloadTask(request);
+                        downloadThread.setCallback(this);
                         downloadThread.start();
                     } else {
                         // 已经有现在现成了
+                        Log.d(LOG_TAG, "Javan send seek");
                         downloadThread.seekTo(request);
                     }
                 }

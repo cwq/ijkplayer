@@ -1,5 +1,7 @@
 package tv.danmaku.ijk.media.demo;
 
+import android.annotation.TargetApi;
+import android.os.Build;
 import android.os.Handler;
 import android.os.Message;
 import android.util.Log;
@@ -14,6 +16,7 @@ public class DownloadStatusProcessor extends DataProcessor implements  Handler.C
     private static final int WAIT_CACHE_SIZE = 128*1024;     //128kb 以内的小偏移
     // 下载的缓冲目录
     private final String mCachePath;
+    private final DownloadTask downloadTask;
 
     private StreamProxy.BlockHttpRequest mRequest;
     private DownloadStatus mMainStatus;
@@ -38,10 +41,11 @@ public class DownloadStatusProcessor extends DataProcessor implements  Handler.C
     private RangDownloadThread[] rangDownloadThreads = new RangDownloadThread[MAX_RANG_DOWNLOAD_THREAD];
     private Handler eventHandler;
 
-    public DownloadStatusProcessor(StreamProxy.BlockHttpRequest request, String cachePath, DownloadStatus status) {
+    public DownloadStatusProcessor(StreamProxy.BlockHttpRequest request, String cachePath, DownloadStatus status, DownloadTask downloadTask) {
         mRequest = request;
         mMainStatus = status;
         mCachePath = cachePath;
+        this.downloadTask = downloadTask;
     }
 
     @Override
@@ -107,8 +111,8 @@ public class DownloadStatusProcessor extends DataProcessor implements  Handler.C
     public void seekTo(StreamProxy.BlockHttpRequest request) throws Exception {
         Log.d(LOG_TAG, "Begin to seek to request " + request.rangeStart + " mainTask " + mainTask);
         int next_thread_id = mainTask == TASK_FRONT ? TASK_BEHIND : TASK_FRONT;
-
         int position = 0;
+
         if (!isAllFinished) {   // 未全部下载完成的时候需要将当前下载的参与计算，如果已经全部下载了。说明Block只有1个0 ~ 文件长度。
             // 找到最佳起始下载文件的位置。避免重复下载
             position = findBlockPosition(request);
@@ -128,15 +132,18 @@ public class DownloadStatusProcessor extends DataProcessor implements  Handler.C
 
         int restart_new = isNeedRestartNew(request, position);
 
+        connectBlocks(downloadedBlock);
+
         if (restart_new == -1) {
             // 需要开启一个新的下载
             Pair<Integer, Integer> range = rangDownloadThreads[mainTask].getDownloadRange();
 
             if (position <= range.first) {  // 比当前下载的range还小
-                request.rangeEnd = range.first;
+                if (range.second == mFileSize)
+                    request.rangeEnd = range.first;
             } else if(position <= range.second) {
                 // 请求的位置大于主请求的的起始，控制前置任务的下载区间，避免重复下载
-                rangDownloadThreads[mainTask].setDownloadRange(range.first, position);
+//                rangDownloadThreads[mainTask].setDownloadRange(range.first, position);
             } else {
                 Log.d(LOG_TAG,"Can not happen");
             }
@@ -390,14 +397,14 @@ public class DownloadStatusProcessor extends DataProcessor implements  Handler.C
         httpString.append("X-Whom: nb263").append("\n");
         httpString.append("X-Qiniu-Zone: 0").append("\n");
         httpString.append("Content-Range: bytes ").append(request.rangeStart)
-                .append("-6709786/6709787").append("\n");
+                .append("-").append(mFileSize - 1).append('/').append(mFileSize).append("\n");
         httpString.append("Content-Length: ").append(mFileSize - request.rangeStart).append("\n");
         httpString.append("Age: 1").append("\n");
         httpString.append("X-Via: 1.1 zhj190:8080 (Cdn Cache Server V2.0), 1.1 zhj74:8107 (Cdn Cache Server V2.0), 1.1 fzh194:2 (Cdn Cache Server V2.0)").append("\n");
         httpString.append("Connection: close").append("\n");
         httpString.append("\n");
 
-        Log.d(LOG_TAG, "JAVAN false result: \n" + httpString.toString());
+//        Log.d(LOG_TAG, "JAVAN false result: \n" + httpString.toString());
 
         byte[] buffer = httpString.toString().getBytes();
         try {
@@ -532,7 +539,8 @@ public class DownloadStatusProcessor extends DataProcessor implements  Handler.C
      */
     private void updateDownloadStatus(RangDownloadThread thread, int downloadStart, int download_write_off) {
 //        Log.d(LOG_TAG, "updateDownloadStatus downloadStart " + downloadStart + " download_write_off " + download_write_off);
-        // TODO 校验对应的start位置是否已经有数值了，有则已最大得为准
+        // TODO 校验对应
+        // 的start位置是否已经有数值了，有则已最大得为准
         // 每次下载后更新偏移值
         if (downloadedBlock.get(downloadStart) == null ||
                 (downloadedBlock.get(downloadStart) != null && downloadedBlock.get(downloadStart)  < download_write_off)) {
@@ -625,6 +633,8 @@ public class DownloadStatusProcessor extends DataProcessor implements  Handler.C
                 request.rangeStart = range_start;
                 request.downloadStart = request.rangeStart;
                 request.rangeEnd = range_end;
+
+                rangDownloadThreads[0].postRequest(request);
             }
 
             Log.e(LOG_TAG, "All thread has finished. But some block was not downloaded");
@@ -634,10 +644,15 @@ public class DownloadStatusProcessor extends DataProcessor implements  Handler.C
     @Override
     public boolean handleMessage(Message message) {
         boolean res = false;
-        switch (message.what){
-            case DownloadTask.MSG_UPDATE_DOWNLOAD_STATUS:
+        switch (message.what) {
+            case DownloadTask.MSG_UPDATE_DOWNLOAD_STATUS: {
+                updateDownloadStatus((RangDownloadThread) message.obj, message.arg1, message.arg2);
+                res = true;
+            }
+            break;
+            case DownloadTask.MSG_NOTIFY_INFO:
             {
-                updateDownloadStatus((RangDownloadThread)message.obj, message.arg1, message.arg2);
+                downloadTask.sendMessage(message.obj);
                 res = true;
             }
             break;
@@ -647,12 +662,13 @@ public class DownloadStatusProcessor extends DataProcessor implements  Handler.C
         return res;
     }
 
+    @TargetApi(Build.VERSION_CODES.JELLY_BEAN_MR2)
     @Override
     void stop() {
         super.stop();
 
         for (int i = 0; i < rangDownloadThreads.length; i++) {
-            rangDownloadThreads[i].quit();
+            rangDownloadThreads[i].quitSafely();
         }
     }
 }

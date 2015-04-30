@@ -106,4 +106,19 @@ public class SendToClientDataProcessor extends DataProcessor {
             e.printStackTrace();
         }
     }
+
+    @Override
+    void stop() {
+        super.stop();
+
+        if (null != randomAccessFile) {
+            try {
+                randomAccessFile.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            } finally {
+                randomAccessFile = null;
+            }
+        }
+    }
 }

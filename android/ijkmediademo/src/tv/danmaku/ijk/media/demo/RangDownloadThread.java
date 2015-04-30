@@ -59,6 +59,21 @@ public class RangDownloadThread extends PriorityHandlerThread implements Handler
 
 	private int download_start;
 
+	@Override
+	protected void finalize() throws Throwable {
+
+		if (null != randomAccessFile) {
+			try {
+				randomAccessFile.close();
+			} catch (IOException e) {
+				e.printStackTrace();
+			} finally {
+				randomAccessFile = null;
+			}
+		}
+
+		super.finalize();
+	}
 
 	// 下载文件的总长度
 	private int file_size;
@@ -175,6 +190,10 @@ public class RangDownloadThread extends PriorityHandlerThread implements Handler
 	}
 
 	private void sendDownloadStatus() {
+		if (state == DownloadTask.STATE_REQUEST_STOP) {
+			return;
+		}
+
 		Message message = eventHandler.obtainMessage(DownloadTask.MSG_UPDATE_DOWNLOAD_STATUS, download_start, download_write_off);
 		message.obj = this;
 		eventHandler.sendMessage(message);
@@ -238,6 +257,10 @@ public class RangDownloadThread extends PriorityHandlerThread implements Handler
 
 	private void scheduleNextOperation(int operationType, long thisOperationStartTimeMs,
 									   long intervalMs) {
+		if (state == DownloadTask.STATE_REQUEST_STOP) {
+			return;
+		}
+
 		long nextOperationStartTimeMs = thisOperationStartTimeMs + intervalMs;
 		long nextOperationDelayMs = nextOperationStartTimeMs - SystemClock.elapsedRealtime();
 		if (nextOperationDelayMs <= 0) {
@@ -470,6 +493,7 @@ public class RangDownloadThread extends PriorityHandlerThread implements Handler
 	 */
 	void stopDownload() {
 		if (mgr != null) {
+			setState(DownloadTask.STATE_REQUEST_STOP);
 			handler.removeMessages(DownloadTask.MSG_DOING_DOWNLOAD);
 			handler.sendEmptyMessage(DownloadTask.MSG_STOP);
 		}
@@ -567,6 +591,10 @@ public class RangDownloadThread extends PriorityHandlerThread implements Handler
 	public void resetSpeed() {
 		multiple = NORMAL_SPEED;
 		handler.sendEmptyMessage(DownloadTask.MSG_DOING_DOWNLOAD);
+	}
+
+	public void clearMessages() {
+		handler.removeMessages(DownloadTask.MSG_DOING_DOWNLOAD);
 	}
 
 	class IcyLineParser extends BasicLineParser {

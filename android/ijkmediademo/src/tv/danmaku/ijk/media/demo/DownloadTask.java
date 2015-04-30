@@ -48,6 +48,7 @@ public class DownloadTask implements Handler.Callback {
     private static final int DOWNLOADING_INTERVAL_MS = 20;
     private static final int IDLE_INTERVAL_MS = 1000;
     private static final int PROCESSOR_DOWNLOAD_STATUS = 0;
+    public static final int STATE_REQUEST_STOP = 5;
 
     public void sendMessage(Object obj) {
         Message message = handler.obtainMessage(DownloadTask.MSG_NOTIFY_INFO, obj);
@@ -118,7 +119,19 @@ public class DownloadTask implements Handler.Callback {
      */
     @TargetApi(Build.VERSION_CODES.JELLY_BEAN_MR2)
     void release() {
-        internalDownThread.quitSafely();
+        while(state != STATE_IDLE) {
+            try {
+                Thread.sleep(10);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2) {
+            internalDownThread.quitSafely();
+        }else {
+            internalDownThread.quit();
+        }
     }
 
     void seekTo(BlockHttpRequest request) {
@@ -173,6 +186,8 @@ public class DownloadTask implements Handler.Callback {
         for (int i = 0; i < processors.length; i++) {
             processors[i].stop();
         }
+
+        setState(STATE_IDLE);
     }
 
     private void seekToInternal(Object data) throws Exception {

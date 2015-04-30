@@ -668,7 +668,14 @@ public class DownloadStatusProcessor extends DataProcessor implements  Handler.C
         super.stop();
 
         for (int i = 0; i < rangDownloadThreads.length; i++) {
-            rangDownloadThreads[i].quitSafely();
+            rangDownloadThreads[i].clearMessages();
+            rangDownloadThreads[i].stopDownload();
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2) {
+                rangDownloadThreads[i].quitSafely();
+            }else {
+                rangDownloadThreads[i].quit();
+            }
         }
     }
 }

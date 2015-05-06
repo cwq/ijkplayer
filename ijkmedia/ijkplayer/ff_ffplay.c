@@ -2765,7 +2765,7 @@ static int lockmgr(void **mtx, enum AVLockOp op)
  ****************************************************************************/
 
 static bool g_ffmpeg_global_inited = false;
-static bool g_ffmpeg_global_use_log_report = false;
+static bool g_ffmpeg_global_use_log_report = true;
 
 static void ffp_log_callback_brief(void *ptr, int level, const char *fmt, va_list vl)
 {
@@ -3060,7 +3060,7 @@ int ffp_seek_to_l(FFPlayer *ffp, long msec)
 {
     assert(ffp);
     VideoState *is = ffp->is;
-    if (!is)
+    if (!is || !is->ic)
         return EIJK_NULL_IS_PTR;
 
     int64_t seek_pos = milliseconds_to_fftime(msec);
@@ -3121,7 +3121,6 @@ long ffp_get_duration_l(FFPlayer *ffp)
     int64_t duration = fftime_to_milliseconds(is->ic->duration);
     if (duration < 0 || duration < start_diff)
         return 0;
-
     int64_t adjust_duration = duration - start_diff;
     // ALOGE("dur=%ld\n", (long)adjust_duration);
     return (long)adjust_duration;

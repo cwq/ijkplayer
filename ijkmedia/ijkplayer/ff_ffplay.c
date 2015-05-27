@@ -358,6 +358,10 @@ static int decoder_decode_frame(FFPlayer *ffp, Decoder *d, AVFrame *frame, AVSub
                         frame->pts = frame->pkt_dts;
                     }
                 }
+                
+                if(ret == AVERROR_INVALIDDATA) {
+                    ffp_notify_msg2(ffp, FFP_MSG_ERROR, AVERROR_INVALIDDATA);
+                }
                 }
                 break;
             case AVMEDIA_TYPE_AUDIO:

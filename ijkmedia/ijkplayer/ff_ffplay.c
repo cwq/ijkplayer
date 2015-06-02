@@ -2769,7 +2769,7 @@ static int lockmgr(void **mtx, enum AVLockOp op)
  ****************************************************************************/
 
 static bool g_ffmpeg_global_inited = false;
-static bool g_ffmpeg_global_use_log_report = true;
+static bool g_ffmpeg_global_use_log_report = false;
 
 static void ffp_log_callback_brief(void *ptr, int level, const char *fmt, va_list vl)
 {

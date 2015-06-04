@@ -377,7 +377,10 @@ public final class IjkMediaPlayer extends SimpleMediaPlayer {
 
     @Override
     public native long getDuration();
-    
+
+    @Override
+    public native int getState();
+
     @Override
     public native void setLooping(int loopTimes) throws IllegalStateException;
 

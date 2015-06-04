@@ -80,6 +80,8 @@ public interface IMediaPlayer {
 
     public abstract long getDuration();
 
+    public abstract int getState();
+
     public abstract void release();
 
     public abstract void reset();

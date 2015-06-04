@@ -184,6 +184,16 @@ public class AndroidMediaPlayer extends SimpleMediaPlayer {
     }
 
     @Override
+    public int getState() {
+        try {
+            return 0;
+        } catch (IllegalStateException e) {
+            DebugLog.printStackTrace(e);
+            return 0;
+        }
+    }
+
+    @Override
     public void release() {
         mIsReleased = true;
         mInternalMediaPlayer.release();

@@ -253,6 +253,20 @@ IjkMediaPlayer_getDuration(JNIEnv *env, jobject thiz)
     return retval;
 }
 
+static int
+IjkMediaPlayer_getState(JNIEnv *env, jobject thiz)
+{
+    int retval = 0;
+    IjkMediaPlayer *mp = jni_get_media_player(env, thiz);
+    JNI_CHECK_GOTO(mp, env, NULL, "mpjni: getDuration: null mp", LABEL_RETURN);
+
+    retval = ijkmp_get_state(mp);
+
+    LABEL_RETURN:
+    ijkmp_dec_ref_p(&mp);
+    return retval;
+}
+
 static void
 IjkMediaPlayer_release(JNIEnv *env, jobject thiz)
 {
@@ -651,6 +665,7 @@ static JNINativeMethod g_methods[] = {
     { "isPlaying",          "()Z",      (void *) IjkMediaPlayer_isPlaying },
     { "getCurrentPosition", "()J",      (void *) IjkMediaPlayer_getCurrentPosition },
     { "getDuration",        "()J",      (void *) IjkMediaPlayer_getDuration },
+    { "getState",           "()I",      (void *) IjkMediaPlayer_getState },
     { "_release",           "()V",      (void *) IjkMediaPlayer_release },
     { "_reset",             "()V",      (void *) IjkMediaPlayer_reset },
     { "setVolume",          "(FF)V",    (void *) IjkMediaPlayer_setVolume },

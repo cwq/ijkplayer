@@ -3106,6 +3106,12 @@ long ffp_get_current_position_l(FFPlayer *ffp)
         return 0;
 
     int64_t adjust_pos = pos - start_diff;
+    
+    // add by Javan 2015.6.4
+    long duration = ffp_get_duration_l(ffp);
+    if ((long)adjust_pos > duration) {
+       adjust_pos = duration;
+    }
     // ALOGE("pos=%ld\n", (long)adjust_pos);
     return (long)adjust_pos;
 }
@@ -3125,6 +3131,7 @@ long ffp_get_duration_l(FFPlayer *ffp)
     int64_t duration = fftime_to_milliseconds(is->ic->duration);
     if (duration < 0 || duration < start_diff)
         return 0;
+
     int64_t adjust_duration = duration - start_diff;
     // ALOGE("dur=%ld\n", (long)adjust_duration);
     return (long)adjust_duration;

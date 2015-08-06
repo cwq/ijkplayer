@@ -201,6 +201,11 @@ typedef struct VideoState {
     int seek_req;
     int seek_flags;
     int64_t seek_pos;
+    
+    // add by Javan 2015.08.06
+    int seek_pos_first_frame;
+    // end of add .
+    
     int64_t seek_rel;
 #ifdef FFP_MERGE
     int read_pause_return;

@@ -1118,6 +1118,9 @@ static int queue_picture(FFPlayer *ffp, AVFrame *src_frame, double pts, double d
     if (pts < is->seek_pos/1000000.0) {
        return 0;
     }
+    // add by javan 2015.08.06 Can queue picture mean seek pos was found.
+    is->seek_pos_first_frame = 1;
+    // end of add.
     // end of add.
            
     if (!(vp = frame_queue_peek_writable(&is->pictq)))
@@ -1799,6 +1802,16 @@ static void sdl_audio_callback(void *opaque, Uint8 *stream, int len)
     }
     // end of add
     
+    // add by Java 2015.08.06 Waiting for first frame has been decoded. Audio decdoer can begin to work.
+    while (!is->seek_pos_first_frame) {
+      SDL_Delay(30);
+      if (is->paused || is->abort_request) {
+        memset(stream, 0, len);
+        return;
+      }
+    }
+    //
+    
     ffp->audio_callback_time = av_gettime_relative();
 
     while (len > 0) {
@@ -2438,6 +2451,9 @@ static int read_thread(void *arg)
             }
             ffp->current_high_water_mark_in_ms = ffp->start_high_water_mark_in_ms;
             is->seek_req = 0;
+            // add by Javan 2015.08.06
+            is->seek_pos_first_frame = 0;
+            // end off add.
             is->queue_attachments_req = 1;
             eof = 0;
 #ifdef FFP_MERGE

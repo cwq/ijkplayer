@@ -28,6 +28,13 @@
 #include "ff_ffplay_config.h"
 #include "ff_ffmsg_queue.h"
 
+#if CONFIG_AVFILTER
+#include "libavfilter/avcodec.h"
+#include "libavfilter/avfilter.h"
+#include "libavfilter/buffersink.h"
+#include "libavfilter/buffersrc.h"
+#endif
+
 #define DEFAULT_HIGH_WATER_MARK_IN_BYTES        (256 * 1024)
 
 /*
@@ -289,9 +296,9 @@ typedef struct VideoState {
     PacketQueue videoq;
     int64_t videoq_duration;
     double max_frame_duration;      // maximum duration of a frame - above this, we consider the jump a timestamp discontinuity
-#if !CONFIG_AVFILTER
+// #if !CONFIG_AVFILTER
     struct SwsContext *img_convert_ctx;
-#endif
+// #endif
 #ifdef FFP_MERGE
     SDL_Rect last_display_rect;
 #endif
@@ -402,6 +409,8 @@ typedef struct FFPlayer {
     AVDictionary *format_opts;
     AVDictionary *codec_opts;
     AVDictionary *sws_opts;
+    // add by Javan 2015.9.21 add AVFilter for ijkplay
+    AVDictionary *swr_opts;
 
     /* ffplay options specified by the user */
 #ifdef FFP_MERGE
@@ -459,7 +468,7 @@ typedef struct FFPlayer {
 #endif
     int autorotate;
 
-    int sws_flags;
+    int64_t sws_flags;
 
     /* current context */
 #ifdef FFP_MERGE
@@ -504,6 +513,7 @@ typedef struct FFPlayer {
 
     // add by Javan 2014.11.27  flag for notify render thread begin.
     int has_begin_render;
+    
 } FFPlayer;
 
 #define fftime_to_milliseconds(ts) (av_rescale(ts, 1000, AV_TIME_BASE));
@@ -517,6 +527,8 @@ inline static void ffp_reset_internal(FFPlayer *ffp)
     av_dict_free(&ffp->format_opts);
     av_dict_free(&ffp->codec_opts);
     av_dict_free(&ffp->sws_opts);
+    // add by Javan 2015.9.21
+    av_dict_free(&ffp->swr_opts);
 
     /* ffplay options specified by the user */
     av_freep(&ffp->input_filename);

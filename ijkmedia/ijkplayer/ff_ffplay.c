@@ -66,8 +66,26 @@ static int ffp_format_control_message(struct AVFormatContext *s, int type,
 
 static AVPacket flush_pkt;
 
-// FFP_MERGE: cmp_audio_fmts
-// FFP_MERGE: get_valid_channel_layout
+static inline
+int cmp_audio_fmts(enum AVSampleFormat fmt1, int64_t channel_count1,
+                   enum AVSampleFormat fmt2, int64_t channel_count2)
+{
+    /* If channel count == 1, planar and non-planar formats are the same */
+    if (channel_count1 == 1 && channel_count2 == 1)
+        return av_get_packed_sample_fmt(fmt1) != av_get_packed_sample_fmt(fmt2);
+    else
+        return channel_count1 != channel_count2 || fmt1 != fmt2;
+}
+
+static inline
+int64_t get_valid_channel_layout(int64_t channel_layout, int channels)
+{
+    if (channel_layout && av_get_channel_layout_nb_channels(channel_layout) == channels)
+        return channel_layout;
+    else
+        return 0;
+}
+
 
 static void free_picture(Frame *vp);
 
@@ -647,9 +665,9 @@ static void stream_close(VideoState *is)
     frame_queue_destory(&is->sampq);
     SDL_DestroyCond(is->continue_read_thread);
     SDL_DestroyMutex(is->play_mutex);
-#if !CONFIG_AVFILTER
+// #if !CONFIG_AVFILTER
     sws_freeContext(is->img_convert_ctx);
-#endif
+// #endif
     av_free(is);
 }
 
@@ -1151,6 +1169,8 @@ static int queue_picture(FFPlayer *ffp, AVFrame *src_frame, double pts, double d
 
     /* if the frame is not skipped, then display it */
     if (vp->bmp) {
+        AVPicture pict = { { 0 } };
+
         /* get a pointer on the bitmap */
         SDL_VoutLockYUVOverlay(vp->bmp);
 
@@ -1255,7 +1275,7 @@ fail:
     return ret;
 }
 
-static int configure_video_filters(AVFilterGraph *graph, VideoState *is, const char *vfilters, AVFrame *frame)
+static int configure_video_filters(FFPlayer *ffp, AVFilterGraph *graph, VideoState *is, const char *vfilters, AVFrame *frame)
 {
     static const enum AVPixelFormat pix_fmts[] = { AV_PIX_FMT_YUV420P, AV_PIX_FMT_NONE };
     char sws_flags_str[128];
@@ -1265,8 +1285,8 @@ static int configure_video_filters(AVFilterGraph *graph, VideoState *is, const c
     AVCodecContext *codec = is->video_st->codec;
     AVRational fr = av_guess_frame_rate(is->ic, is->video_st, NULL);
 
-    av_opt_get_int(sws_opts, "sws_flags", 0, &sws_flags);
-    snprintf(sws_flags_str, sizeof(sws_flags_str), "flags=%"PRId64, sws_flags);
+    av_opt_get_int(ffp->sws_opts, "sws_flags", 0, &ffp->sws_flags);
+    snprintf(sws_flags_str, sizeof(sws_flags_str), "flags=%"PRId64, ffp->sws_flags);
     graph->scale_sws_opts = av_strdup(sws_flags_str);
 
     snprintf(buffersrc_args, sizeof(buffersrc_args),
@@ -1316,7 +1336,7 @@ static int configure_video_filters(AVFilterGraph *graph, VideoState *is, const c
      * combinations, therefore we crop the picture to an even width/height. */
     INSERT_FILT("crop", "floor(in_w/2)*2:floor(in_h/2)*2");
 
-    if (autorotate) {
+    if (ffp->autorotate) {
         AVDictionaryEntry *rotate_tag = av_dict_get(is->video_st->metadata, "rotate", NULL, 0);
         if (rotate_tag && *rotate_tag->value && strcmp(rotate_tag->value, "0")) {
             if (!strcmp(rotate_tag->value, "90")) {
@@ -1344,7 +1364,7 @@ fail:
     return ret;
 }
 
-static int configure_audio_filters(VideoState *is, const char *afilters, int force_output_format)
+static int configure_audio_filters(FFPlayer *ffp, VideoState *is, const char *afilters, int force_output_format)
 {
     static const enum AVSampleFormat sample_fmts[] = { AV_SAMPLE_FMT_S16, AV_SAMPLE_FMT_NONE };
     int sample_rates[2] = { 0, -1 };
@@ -1360,7 +1380,7 @@ static int configure_audio_filters(VideoState *is, const char *afilters, int for
     if (!(is->agraph = avfilter_graph_alloc()))
         return AVERROR(ENOMEM);
 
-    while ((e = av_dict_get(swr_opts, "", e, AV_DICT_IGNORE_SUFFIX)))
+    while ((e = av_dict_get(ffp->swr_opts, "", e, AV_DICT_IGNORE_SUFFIX)))
         av_strlcatf(aresample_swr_opts, sizeof(aresample_swr_opts), "%s=%s:", e->key, e->value);
     if (strlen(aresample_swr_opts))
         aresample_swr_opts[strlen(aresample_swr_opts)-1] = '\0';
@@ -1470,7 +1490,7 @@ static int audio_thread(void *arg)
                     is->audio_filter_src.freq           = frame->sample_rate;
                     last_serial                         = is->auddec.pkt_serial;
 
-                    if ((ret = configure_audio_filters(is, afilters, 1)) < 0)
+                    if ((ret = configure_audio_filters(ffp, is, ffp->afilters, 1)) < 0)
                         goto the_end;
                 }
 
@@ -1550,11 +1570,9 @@ static int video_thread(void *arg)
                    (const char *)av_x_if_null(av_get_pix_fmt_name(frame->format), "none"), is->viddec.pkt_serial);
             avfilter_graph_free(&graph);
             graph = avfilter_graph_alloc();
-            if ((ret = configure_video_filters(graph, is, vfilters_list ? vfilters_list[is->vfilter_idx] : NULL, frame)) < 0) {
-                SDL_Event event;
-                event.type = FF_QUIT_EVENT;
-                event.user.data1 = is;
-                SDL_PushEvent(&event);
+            if ((ret = configure_video_filters(ffp, graph, is, ffp->vfilters_list ? ffp->vfilters_list[is->vfilter_idx] : NULL, frame)) < 0) {
+                ffp_notify_msg2(ffp, FFP_MSG_ERROR, 1988);
+                ALOGE("......configure_video_filters fail !!!");
                 goto the_end;
             }
             filt_in  = is->in_video_filter;
@@ -1577,7 +1595,7 @@ static int video_thread(void *arg)
             ret = av_buffersink_get_frame_flags(filt_out, frame, 0);
             if (ret < 0) {
                 if (ret == AVERROR_EOF)
-                    is->video_finished = is->viddec.pkt_serial;
+                    is->viddec.finished = is->viddec.pkt_serial;
                 ret = 0;
                 break;
             }
@@ -2010,7 +2028,7 @@ static int stream_component_open(FFPlayer *ffp, int stream_index)
             is->audio_filter_src.channels       = avctx->channels;
             is->audio_filter_src.channel_layout = get_valid_channel_layout(avctx->channel_layout, avctx->channels);
             is->audio_filter_src.fmt            = avctx->sample_fmt;
-            if ((ret = configure_audio_filters(is, afilters, 0)) < 0)
+            if ((ret = configure_audio_filters(ffp, is, ffp->afilters, 0)) < 0)
                 goto fail;
             link = is->out_audio_filter->inputs[0];
             sample_rate    = link->sample_rate;
@@ -2869,7 +2887,7 @@ void ffp_global_uninit()
 
 #if CONFIG_AVFILTER
     avfilter_uninit();
-    av_freep(&vfilters);
+    // av_freep(&vfilters);
 #endif
     avformat_network_deinit();
 

@@ -281,6 +281,7 @@ $CC -lm -lz -shared --sysroot=$FF_SYSROOT -Wl,--no-undefined -Wl,-z,noexecstack 
     compat/*.o \
     libavutil/*.o \
     libavcodec/*.o \
+    libavfilter/*.o \
     libavformat/*.o \
     libswresample/*.o \
     libswscale/*.o \
